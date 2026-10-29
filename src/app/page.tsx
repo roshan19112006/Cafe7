@@ -2,21 +2,17 @@
 
 import React, { useState, useMemo } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   MENU_CATEGORIES,
-  MenuItem,
-  MenuCategory
+  MenuItem
 } from "@/data/menu";
 import {
   Search,
   ShoppingBag,
   Flame,
-  Leaf,
-  Coffee,
   CheckCircle2,
   ExternalLink,
-  ChevronRight,
-  Sparkles,
   Phone,
   Clock3,
   MapPin,
@@ -24,11 +20,9 @@ import {
   Plus,
   Minus,
   UtensilsCrossed,
-  ArrowRight,
   BadgeCheck,
   MessageCircleMore,
-  Eye,
-  SlidersHorizontal
+  Eye
 } from "lucide-react";
 
 interface CartItem {
@@ -166,17 +160,17 @@ export default function Home() {
       {/* Sticky Header */}
       <header className="sticky top-0 z-40 border-b border-black/5 bg-[#FBF8F4]/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <a
+          <Link
             href="/"
             className="text-xl font-semibold tracking-[0.2em] text-[#2F2622] font-serif"
           >
             CAFE 7
-          </a>
+          </Link>
 
           <nav className="hidden items-center gap-8 text-sm font-medium text-[#3B312C] md:flex">
-            <a href="/" className="text-[#A97A55] transition">
+            <Link href="/" className="text-[#A97A55] transition">
               Home
-            </a>
+            </Link>
             <a href="#menu-section" className="transition hover:text-[#A97A55]">
               Menu ({totalItemCount})
             </a>
@@ -832,7 +826,7 @@ export default function Home() {
                       Your bag is empty
                     </p>
                     <p className="text-xs text-stone-400 mt-1">
-                      Click "Add" on any item from the menu to start ordering.
+                      Click &quot;Add&quot; on any item from the menu to start ordering.
                     </p>
                   </div>
                 ) : (
@@ -949,9 +943,9 @@ export default function Home() {
           <div>
             <h3 className="text-lg font-semibold text-[#2F2622]">Quick Links</h3>
             <div className="mt-4 flex flex-col gap-3 text-sm text-[#3B312C]">
-              <a className="hover:text-[#A97A55]" href="/">
+              <Link className="hover:text-[#A97A55]" href="/">
                 Home
-              </a>
+              </Link>
               <a className="hover:text-[#A97A55]" href="#menu-section">
                 Menu ({totalItemCount})
               </a>
