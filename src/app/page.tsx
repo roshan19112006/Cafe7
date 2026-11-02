@@ -23,7 +23,8 @@ import {
   BadgeCheck,
   MessageCircleMore,
   Eye,
-  Lock
+  Lock,
+  Menu as MenuIcon
 } from "lucide-react";
 import AdminManager from "@/components/AdminManager";
 
@@ -38,6 +39,7 @@ export default function Home() {
   const [dietaryFilter, setDietaryFilter] = useState<"all" | "veg" | "non-veg">("all");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const [activeMenuCard, setActiveMenuCard] = useState<"menu1" | null>(null);
   const [selectedPreviewItem, setSelectedPreviewItem] = useState<MenuItem | null>(null);
   const [isAdminOpen, setIsAdminOpen] = useState<boolean>(false);
@@ -219,7 +221,7 @@ export default function Home() {
             </a>
           </nav>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 sm:space-x-3">
             <button
               onClick={() => setActiveMenuCard("menu1")}
               className="hidden lg:inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full border border-[#E8D8C6] bg-white text-xs font-semibold text-[#2F2622] hover:bg-[#F4EEE7] transition cursor-pointer"
@@ -230,18 +232,121 @@ export default function Home() {
 
             <button
               onClick={() => setIsCartOpen(true)}
-              className="rounded-full bg-[#A97A55] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#8e643f] flex items-center space-x-2 cursor-pointer"
+              className="rounded-full bg-[#A97A55] px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#8e643f] flex items-center space-x-1.5 sm:space-x-2 cursor-pointer"
             >
               <ShoppingBag className="w-4 h-4" />
               <span>Order Now</span>
               {cartItemCount > 0 && (
-                <span className="bg-white text-[#2F2622] text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center ml-1">
+                <span className="bg-white text-[#2F2622] text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center ml-0.5 sm:ml-1">
                   {cartItemCount}
                 </span>
               )}
             </button>
+
+            {/* Mobile Hamburger Toggle Button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 rounded-xl border border-[#E8D8C6] bg-white text-[#2F2622] hover:bg-[#F4EEE7] transition cursor-pointer flex items-center justify-center"
+              aria-label="Toggle navigation menu"
+            >
+              {isMobileMenuOpen ? (
+                <X className="w-5 h-5 text-[#A97A55]" />
+              ) : (
+                <MenuIcon className="w-5 h-5 text-[#2F2622]" />
+              )}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Dropdown Navigation Drawer */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-[#E8D8C6] bg-[#FBF8F4] px-4 py-4 space-y-2.5 shadow-xl animate-in slide-in-from-top-2 duration-200">
+            <Link
+              href="/"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-between p-3 rounded-2xl bg-white border border-[#E8D8C6] text-sm font-semibold text-[#2F2622] hover:bg-[#F4EEE7] transition"
+            >
+              <div className="flex items-center space-x-3">
+                <span className="text-base">🏠</span>
+                <span>Home</span>
+              </div>
+              <span className="text-[11px] text-[#A97A55] font-medium">Main</span>
+            </Link>
+
+            <a
+              href="#menu-section"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-between p-3 rounded-2xl bg-white border border-[#E8D8C6] text-sm font-semibold text-[#2F2622] hover:bg-[#F4EEE7] transition"
+            >
+              <div className="flex items-center space-x-3">
+                <span className="text-base">🍔</span>
+                <span>Full Menu</span>
+              </div>
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#A97A55]/10 text-[#A97A55] font-bold">
+                {totalItemCount} Items
+              </span>
+            </a>
+
+            <Link
+              href="/offers"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-between p-3 rounded-2xl bg-[#FAF4ED] border border-[#A97A55]/40 text-sm font-bold text-[#A97A55] hover:bg-[#F4EEE7] transition"
+            >
+              <div className="flex items-center space-x-3">
+                <span className="text-base">🏷️</span>
+                <span>Special Offers & Deals</span>
+              </div>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500 text-white font-bold uppercase animate-pulse">
+                HOT
+              </span>
+            </Link>
+
+            <a
+              href="#about-section"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-between p-3 rounded-2xl bg-white border border-[#E8D8C6] text-sm font-semibold text-[#2F2622] hover:bg-[#F4EEE7] transition"
+            >
+              <div className="flex items-center space-x-3">
+                <span className="text-base">☕</span>
+                <span>About Café 7</span>
+              </div>
+            </a>
+
+            <a
+              href="#contact-section"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-between p-3 rounded-2xl bg-white border border-[#E8D8C6] text-sm font-semibold text-[#2F2622] hover:bg-[#F4EEE7] transition"
+            >
+              <div className="flex items-center space-x-3">
+                <span className="text-base">📍</span>
+                <span>Visit & Contact Us</span>
+              </div>
+            </a>
+
+            <div className="pt-2 grid grid-cols-2 gap-2">
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setActiveMenuCard("menu1");
+                }}
+                className="py-2.5 px-3 rounded-xl border border-[#E8D8C6] bg-white text-xs font-semibold text-[#2F2622] flex items-center justify-center space-x-1.5 shadow-xs"
+              >
+                <Eye className="w-3.5 h-3.5 text-[#A97A55]" />
+                <span>Menu Card</span>
+              </button>
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setIsCartOpen(true);
+                }}
+                className="py-2.5 px-3 rounded-xl bg-[#A97A55] text-white text-xs font-semibold flex items-center justify-center space-x-1.5 shadow-sm"
+              >
+                <ShoppingBag className="w-3.5 h-3.5" />
+                <span>Cart ({cartItemCount})</span>
+              </button>
+            </div>
+          </div>
+        )}
       </header>
 
       <main>
@@ -1008,6 +1113,40 @@ export default function Home() {
           </button>
         </div>
       </footer>
+
+      {/* Mobile Floating Bottom Bar for Quick 1-Tap Navigation */}
+      <nav
+        aria-label="Mobile quick navigation"
+        className="md:hidden fixed bottom-3 left-4 right-4 z-40 bg-[#2F2622]/95 backdrop-blur-md rounded-full border border-white/10 px-5 py-2.5 shadow-2xl flex items-center justify-around text-white"
+      >
+        <Link href="/" className="flex flex-col items-center text-[10px] text-stone-300 hover:text-white transition">
+          <span className="text-base">🏠</span>
+          <span className="mt-0.5">Home</span>
+        </Link>
+        <a href="#menu-section" className="flex flex-col items-center text-[10px] text-stone-300 hover:text-white transition">
+          <span className="text-base">🍔</span>
+          <span className="mt-0.5">Menu</span>
+        </a>
+        <Link href="/offers" className="flex flex-col items-center text-[10px] text-rose-300 hover:text-white transition relative">
+          <span className="text-base">🏷️</span>
+          <span className="mt-0.5">Offers</span>
+          <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+        </Link>
+        <button
+          onClick={() => setIsCartOpen(true)}
+          className="flex flex-col items-center text-[10px] text-[#A97A55] hover:text-white transition relative cursor-pointer"
+        >
+          <div className="relative">
+            <ShoppingBag className="w-5 h-5 text-[#A97A55]" />
+            {cartItemCount > 0 && (
+              <span className="absolute -top-1.5 -right-2 bg-rose-500 text-white text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                {cartItemCount}
+              </span>
+            )}
+          </div>
+          <span className="mt-0.5">Order</span>
+        </button>
+      </nav>
 
       {/* Admin Manager Modal */}
       <AdminManager

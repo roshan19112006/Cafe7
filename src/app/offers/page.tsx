@@ -23,12 +23,14 @@ import {
   Eye,
   X,
   Lock,
-  UtensilsCrossed
+  UtensilsCrossed,
+  Menu as MenuIcon
 } from "lucide-react";
 
 export default function OffersPage() {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [isAdminOpen, setIsAdminOpen] = useState<boolean>(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const [selectedPreviewImage, setSelectedPreviewImage] = useState<Offer | null>(null);
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
 
@@ -106,16 +108,93 @@ export default function OffersPage() {
             </Link>
           </nav>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 sm:space-x-3">
             <Link
               href="/#menu-section"
-              className="rounded-full bg-[#A97A55] px-5 py-2 text-xs sm:text-sm font-semibold text-white shadow-sm transition hover:bg-[#8e643f] flex items-center space-x-2"
+              className="rounded-full bg-[#A97A55] px-4 py-2 sm:px-5 sm:py-2 text-xs sm:text-sm font-semibold text-white shadow-sm transition hover:bg-[#8e643f] flex items-center space-x-1.5 sm:space-x-2"
             >
               <UtensilsCrossed className="w-4 h-4" />
               <span>Full Menu</span>
             </Link>
+
+            {/* Mobile Hamburger Toggle Button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 rounded-xl border border-[#E8D8C6] bg-white text-[#2F2622] hover:bg-[#F4EEE7] transition cursor-pointer flex items-center justify-center"
+              aria-label="Toggle navigation menu"
+            >
+              {isMobileMenuOpen ? (
+                <X className="w-5 h-5 text-[#A97A55]" />
+              ) : (
+                <MenuIcon className="w-5 h-5 text-[#2F2622]" />
+              )}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Dropdown Navigation Drawer */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-[#E8D8C6] bg-[#FBF8F4] px-4 py-4 space-y-2.5 shadow-xl animate-in slide-in-from-top-2 duration-200">
+            <Link
+              href="/"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-between p-3 rounded-2xl bg-white border border-[#E8D8C6] text-sm font-semibold text-[#2F2622] hover:bg-[#F4EEE7] transition"
+            >
+              <div className="flex items-center space-x-3">
+                <span className="text-base">🏠</span>
+                <span>Home</span>
+              </div>
+              <span className="text-[11px] text-[#A97A55] font-medium">Main</span>
+            </Link>
+
+            <Link
+              href="/#menu-section"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-between p-3 rounded-2xl bg-white border border-[#E8D8C6] text-sm font-semibold text-[#2F2622] hover:bg-[#F4EEE7] transition"
+            >
+              <div className="flex items-center space-x-3">
+                <span className="text-base">🍔</span>
+                <span>Full Menu</span>
+              </div>
+            </Link>
+
+            <Link
+              href="/offers"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-between p-3 rounded-2xl bg-[#FAF4ED] border border-[#A97A55]/40 text-sm font-bold text-[#A97A55] hover:bg-[#F4EEE7] transition"
+            >
+              <div className="flex items-center space-x-3">
+                <span className="text-base">🏷️</span>
+                <span>Special Offers & Deals</span>
+              </div>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500 text-white font-bold uppercase animate-pulse">
+                HOT
+              </span>
+            </Link>
+
+            <Link
+              href="/#about-section"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-between p-3 rounded-2xl bg-white border border-[#E8D8C6] text-sm font-semibold text-[#2F2622] hover:bg-[#F4EEE7] transition"
+            >
+              <div className="flex items-center space-x-3">
+                <span className="text-base">☕</span>
+                <span>About Café 7</span>
+              </div>
+            </Link>
+
+            <Link
+              href="/#contact-section"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-between p-3 rounded-2xl bg-white border border-[#E8D8C6] text-sm font-semibold text-[#2F2622] hover:bg-[#F4EEE7] transition"
+            >
+              <div className="flex items-center space-x-3">
+                <span className="text-base">📍</span>
+                <span>Visit & Contact Us</span>
+              </div>
+            </Link>
+          </div>
+        )}
       </header>
 
       {/* Main Content */}
@@ -362,6 +441,35 @@ export default function OffersPage() {
           </button>
         </div>
       </footer>
+
+      {/* Mobile Floating Bottom Bar for Quick 1-Tap Navigation */}
+      <nav
+        aria-label="Mobile quick navigation"
+        className="md:hidden fixed bottom-3 left-4 right-4 z-40 bg-[#2F2622]/95 backdrop-blur-md rounded-full border border-white/10 px-5 py-2.5 shadow-2xl flex items-center justify-around text-white"
+      >
+        <Link href="/" className="flex flex-col items-center text-[10px] text-stone-300 hover:text-white transition">
+          <span className="text-base">🏠</span>
+          <span className="mt-0.5">Home</span>
+        </Link>
+        <Link href="/#menu-section" className="flex flex-col items-center text-[10px] text-stone-300 hover:text-white transition">
+          <span className="text-base">🍔</span>
+          <span className="mt-0.5">Menu</span>
+        </Link>
+        <Link href="/offers" className="flex flex-col items-center text-[10px] text-rose-300 hover:text-white transition relative">
+          <span className="text-base">🏷️</span>
+          <span className="mt-0.5 font-bold text-rose-300">Offers</span>
+          <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+        </Link>
+        <a
+          href="https://wa.me/919677419178?text=Hi%20Cafe%207!%20I%20would%20like%20to%20order."
+          target="_blank"
+          rel="noreferrer"
+          className="flex flex-col items-center text-[10px] text-emerald-400 hover:text-white transition"
+        >
+          <MessageCircle className="w-5 h-5 text-emerald-400" />
+          <span className="mt-0.5">Chat</span>
+        </a>
+      </nav>
     </div>
   );
 }
