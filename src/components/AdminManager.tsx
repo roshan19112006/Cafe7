@@ -30,7 +30,7 @@ import {
 interface AdminManagerProps {
   isOpen: boolean;
   onClose: () => void;
-  onOffersChange?: () => void;
+  onOffersChange?: (updatedOffers?: Offer[]) => void;
 }
 
 export default function AdminManager({ isOpen, onClose, onOffersChange }: AdminManagerProps) {
@@ -39,7 +39,9 @@ export default function AdminManager({ isOpen, onClose, onOffersChange }: AdminM
   const [password, setPassword] = useState<string>("");
   const [authError, setAuthError] = useState<string | null>(null);
 
-  const [offers, setOffers] = useState<Offer[]>([]);
+  const [offers, setOffers] = useState<Offer[]>(() =>
+    typeof window !== "undefined" ? getStoredOffers() : []
+  );
   const [activeTab, setActiveTab] = useState<"upload" | "manage">("upload");
 
   // Form states
@@ -62,10 +64,19 @@ export default function AdminManager({ isOpen, onClose, onOffersChange }: AdminM
     if (typeof window !== "undefined") {
       const isAuth = localStorage.getItem(STORAGE_KEY_AUTH) === "true";
       setIsAuthenticated(isAuth);
+      setOffers(getStoredOffers());
       fetchOffersFromServer().then((loaded) => {
         setOffers(loaded);
       });
     }
+
+    const onUpdate = () => {
+      if (typeof window !== "undefined") {
+        setOffers(getStoredOffers());
+      }
+    };
+    window.addEventListener("cafe7_offers_updated", onUpdate);
+    return () => window.removeEventListener("cafe7_offers_updated", onUpdate);
   }, [isOpen]);
 
   const handleLogin = (e: React.FormEvent) => {
@@ -111,7 +122,7 @@ export default function AdminManager({ isOpen, onClose, onOffersChange }: AdminM
     try {
       setIsCompressing(true);
       setFormError(null);
-      const compressedDataUrl = await compressImageFile(file, 1200, 0.85);
+      const compressedDataUrl = await compressImageFile(file, 650, 0.65);
       setImagePreview(compressedDataUrl);
     } catch (err) {
       console.error(err);
@@ -165,7 +176,7 @@ export default function AdminManager({ isOpen, onClose, onOffersChange }: AdminM
       setImagePreview(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
 
-      if (onOffersChange) onOffersChange();
+      if (onOffersChange) onOffersChange(updated);
       setTimeout(() => setFormSuccess(null), 3500);
     } catch (err) {
       console.error(err);
@@ -183,7 +194,7 @@ export default function AdminManager({ isOpen, onClose, onOffersChange }: AdminM
       setOffers(updated);
       setFormSuccess(`Offer "${offerTitle}" deleted successfully!`);
       setTimeout(() => setFormSuccess(null), 3000);
-      if (onOffersChange) onOffersChange();
+      if (onOffersChange) onOffersChange(updated);
     } catch (err) {
       console.error("Delete offer failed:", err);
       setFormError("Failed to delete offer. Please try again.");
@@ -200,7 +211,7 @@ export default function AdminManager({ isOpen, onClose, onOffersChange }: AdminM
       setConfirmDeleteAll(false);
       setFormSuccess("All offers deleted! The page now displays 'No Offer Available'.");
       setTimeout(() => setFormSuccess(null), 3500);
-      if (onOffersChange) onOffersChange();
+      if (onOffersChange) onOffersChange([]);
     } catch (err) {
       console.error("Delete all offers failed:", err);
       setFormError("Failed to delete all offers.");

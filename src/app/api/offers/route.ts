@@ -3,6 +3,9 @@ import fs from "fs";
 import path from "path";
 import { put, list } from "@vercel/blob";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const CLOUD_DB_URL = "https://api.restful-api.dev/objects/ff808181a09d98f701a19cfb2f361157";
 const DATA_FILE = path.join(process.cwd(), "src", "data", "offers.json");
 
@@ -13,7 +16,7 @@ async function getFromBlob(): Promise<any[] | null> {
     const { blobs } = await list({ prefix: "cafe7-offers.json" });
     if (blobs && blobs.length > 0) {
       const targetBlob = blobs.find((b) => b.pathname === "cafe7-offers.json") || blobs[0];
-      const res = await fetch(targetBlob.url, {
+      const res = await fetch(`${targetBlob.url}?t=${Date.now()}`, {
         cache: "no-store",
         headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
       });
@@ -38,6 +41,7 @@ async function saveToBlob(offers: any[]): Promise<boolean> {
     await put("cafe7-offers.json", JSON.stringify(clean), {
       access: "public",
       addRandomSuffix: false,
+      allowOverwrite: true,
       contentType: "application/json",
       cacheControlMaxAge: 0,
     });

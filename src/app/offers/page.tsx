@@ -431,7 +431,13 @@ export default function OffersPage() {
       <AdminManager
         isOpen={isAdminOpen}
         onClose={() => setIsAdminOpen(false)}
-        onOffersChange={refreshOffers}
+        onOffersChange={(updated) => {
+          if (updated) {
+            setOffers(updated);
+          } else {
+            refreshOffers();
+          }
+        }}
       />
 
       {/* Footer with Discreet/Hidden Admin Trigger */}

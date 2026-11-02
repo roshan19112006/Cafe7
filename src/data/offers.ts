@@ -8,11 +8,12 @@ export interface Offer {
   createdAt: string;
 }
 
-export const STORAGE_KEY_OFFERS = "cafe7_active_offers_v4";
+export const STORAGE_KEY_OFFERS = "cafe7_active_offers_v5";
 export const LEGACY_STORAGE_KEYS = [
   "cafe7_promotional_offers_v1",
   "cafe7_promotional_offers_v2",
   "cafe7_active_offers_v3",
+  "cafe7_active_offers_v4",
 ];
 export const STORAGE_KEY_AUTH = "cafe7_admin_auth_v1";
 export const CLOUD_DIRECT_URL = "https://api.restful-api.dev/objects/ff808181a09d98f701a19cfb2f361157";
@@ -76,10 +77,8 @@ export function storeOffers(offers: Offer[]): void {
 
 // Fetch offers from server API and safely synchronize across all browsers
 export async function fetchOffersFromServer(): Promise<Offer[]> {
-  const local = getStoredOffers();
-
   try {
-    const res = await fetch("/api/offers", {
+    const res = await fetch(`/api/offers?t=${Date.now()}`, {
       cache: "no-store",
       headers: {
         "Cache-Control": "no-cache",
@@ -93,22 +92,8 @@ export async function fetchOffersFromServer(): Promise<Offer[]> {
         const cleanServer = data.filter(
           (o: any) => o && o.id !== "offer-1" && o.id !== "offer-2"
         );
-
-        if (cleanServer.length > 0) {
-          // Server has active offers: Edge, Phone, and all browsers receive them
-          storeOffers(cleanServer);
-          return cleanServer;
-        } else if (local.length > 0) {
-          // Chrome has the user's newly uploaded offer, but server was empty:
-          // Sync Chrome's offer TO the server immediately so Phone and Edge get it too!
-          saveAllOffersToServer(local).catch(() => {});
-          storeOffers(local);
-          return local;
-        } else {
-          // Truly empty: show "No Offer Available"
-          storeOffers([]);
-          return [];
-        }
+        storeOffers(cleanServer);
+        return cleanServer;
       }
     }
   } catch (err) {
@@ -117,23 +102,21 @@ export async function fetchOffersFromServer(): Promise<Offer[]> {
 
   // Direct cloud fallback if /api/offers was unavailable
   try {
-    const directRes = await fetch(CLOUD_DIRECT_URL, { cache: "no-store" });
+    const directRes = await fetch(`${CLOUD_DIRECT_URL}?t=${Date.now()}`, { cache: "no-store" });
     if (directRes.ok) {
       const json = await directRes.json();
       const list = json?.data?.offers;
       if (Array.isArray(list)) {
         const clean = list.filter((o: any) => o && o.id !== "offer-1" && o.id !== "offer-2");
-        if (clean.length > 0) {
-          storeOffers(clean);
-          return clean;
-        }
+        storeOffers(clean);
+        return clean;
       }
     }
   } catch {
     // fallback
   }
 
-  return local;
+  return getStoredOffers();
 }
 
 // Save all offers to server (batch sync)
@@ -170,16 +153,36 @@ export async function saveOfferToServer(offer: Offer): Promise<Offer[]> {
   // 1. Immediately save to local storage
   storeOffers(updated);
 
-  // 2. Sync to server API and cloud
+  // 2. Sync to server API and await response
   try {
-    await fetch("/api/offers", {
+    const res = await fetch("/api/offers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(offer),
     });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.offers)) {
+        storeOffers(data.offers);
+        return data.offers;
+      }
+    }
   } catch (err) {
     console.warn("Could not sync offer to /api/offers:", err);
-    saveAllOffersToServer(updated).catch(() => {});
+  }
+
+  // Dual sync to cloud direct DB
+  try {
+    await fetch(CLOUD_DIRECT_URL, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "cafe7_database",
+        data: { offers: updated },
+      }),
+    });
+  } catch {
+    // fallback
   }
 
   return updated;
@@ -193,14 +196,34 @@ export async function deleteOfferFromServer(id: string): Promise<Offer[]> {
   // 1. Immediately update local storage
   storeOffers(updated);
 
-  // 2. Sync deletion to server API
+  // 2. Sync deletion to server API and await response
   try {
-    await fetch(`/api/offers?id=${encodeURIComponent(id)}`, {
+    const res = await fetch(`/api/offers?id=${encodeURIComponent(id)}`, {
       method: "DELETE",
     });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.offers)) {
+        storeOffers(data.offers);
+        return data.offers;
+      }
+    }
   } catch (err) {
     console.warn("Could not sync delete to /api/offers:", err);
-    saveAllOffersToServer(updated).catch(() => {});
+  }
+
+  // Dual sync to cloud direct DB
+  try {
+    await fetch(CLOUD_DIRECT_URL, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "cafe7_database",
+        data: { offers: updated },
+      }),
+    });
+  } catch {
+    // fallback
   }
 
   return updated;
@@ -211,19 +234,39 @@ export async function deleteAllOffersFromServer(): Promise<Offer[]> {
   storeOffers([]);
 
   try {
-    await fetch(`/api/offers?id=ALL`, {
+    const res = await fetch(`/api/offers?id=ALL`, {
       method: "DELETE",
     });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.offers)) {
+        storeOffers(data.offers);
+        return data.offers;
+      }
+    }
   } catch (err) {
     console.warn("Could not sync delete all to /api/offers:", err);
-    saveAllOffersToServer([]).catch(() => {});
+  }
+
+  // Dual sync to cloud direct DB
+  try {
+    await fetch(CLOUD_DIRECT_URL, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "cafe7_database",
+        data: { offers: [] },
+      }),
+    });
+  } catch {
+    // fallback
   }
 
   return [];
 }
 
-// Compress image to lightweight, high quality data URL (max 900px, quality 0.75 ~50-80KB)
-export function compressImageFile(file: File, maxWidth = 900, quality = 0.75): Promise<string> {
+// Compress image to lightweight, high quality data URL (max 650px on longest dimension, quality 0.65 ~30-50KB)
+export function compressImageFile(file: File, maxDim = 650, quality = 0.65): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -233,9 +276,15 @@ export function compressImageFile(file: File, maxWidth = 900, quality = 0.75): P
         let width = img.width;
         let height = img.height;
 
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
+        // Scale down both width and height proportionally
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
         }
 
         canvas.width = width;
