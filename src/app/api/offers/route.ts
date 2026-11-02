@@ -12,7 +12,11 @@ async function getFromBlob(): Promise<any[] | null> {
   try {
     const { blobs } = await list({ prefix: "cafe7-offers.json" });
     if (blobs && blobs.length > 0) {
-      const res = await fetch(blobs[0].url, { cache: "no-store" });
+      const targetBlob = blobs.find((b) => b.pathname === "cafe7-offers.json") || blobs[0];
+      const res = await fetch(targetBlob.url, {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+      });
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
@@ -35,6 +39,7 @@ async function saveToBlob(offers: any[]): Promise<boolean> {
       access: "public",
       addRandomSuffix: false,
       contentType: "application/json",
+      cacheControlMaxAge: 0,
     });
     return true;
   } catch (err) {
