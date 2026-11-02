@@ -58,10 +58,12 @@ export default function OffersPage() {
       }
     };
     window.addEventListener("cafe7_offers_updated", handleUpdate);
+    window.addEventListener("cafe7_auth_changed", handleUpdate);
     window.addEventListener("storage", handleUpdate);
 
     return () => {
       window.removeEventListener("cafe7_offers_updated", handleUpdate);
+      window.removeEventListener("cafe7_auth_changed", handleUpdate);
       window.removeEventListener("storage", handleUpdate);
     };
   }, []);

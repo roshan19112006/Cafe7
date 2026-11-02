@@ -11,10 +11,9 @@ export interface Offer {
 export const STORAGE_KEY_OFFERS = "cafe7_promotional_offers_v1";
 export const STORAGE_KEY_AUTH = "cafe7_admin_auth_v1";
 
-// Empty by default: if no offers uploaded, the page displays "No Offer Available"
 export const DEFAULT_OFFERS: Offer[] = [];
 
-// Helper to get offers from localStorage safely in Next.js client (synchronous fallback)
+// Helper to get offers from localStorage safely in Next.js client
 export function getStoredOffers(): Offer[] {
   if (typeof window === "undefined") {
     return [];
@@ -45,8 +44,10 @@ export function storeOffers(offers: Offer[]): void {
   }
 }
 
-// Fetch offers from server API and synchronize with localStorage
+// Fetch offers from server API and safely synchronize with localStorage
 export async function fetchOffersFromServer(): Promise<Offer[]> {
+  const local = getStoredOffers();
+
   try {
     const res = await fetch("/api/offers", {
       cache: "no-store",
@@ -54,89 +55,96 @@ export async function fetchOffersFromServer(): Promise<Offer[]> {
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data)) {
-        if (typeof window !== "undefined") {
-          localStorage.setItem(STORAGE_KEY_OFFERS, JSON.stringify(data));
-          window.dispatchEvent(new Event("cafe7_offers_updated"));
+        if (data.length > 0) {
+          // Server has active offers: update local store & return
+          storeOffers(data);
+          return data;
+        } else if (local.length > 0) {
+          // Server was empty but local has active uploaded offers: sync local TO server so it is never lost!
+          saveAllOffersToServer(local).catch(() => {});
+          return local;
         }
-        return data;
       }
     }
   } catch (err) {
-    console.warn("Could not fetch offers from server API, falling back to local storage:", err);
+    console.warn("Could not fetch offers from server API, using local storage:", err);
   }
-  return getStoredOffers();
+
+  return local;
 }
 
-// Save offer to server API and localStorage
-export async function saveOfferToServer(offer: Offer): Promise<Offer[]> {
+// Save all offers to server (batch sync)
+export async function saveAllOffersToServer(offers: Offer[]): Promise<void> {
   try {
-    const res = await fetch("/api/offers", {
+    await fetch("/api/offers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ offers }),
+    });
+  } catch (err) {
+    console.warn("Batch save to server failed:", err);
+  }
+}
+
+// Save single offer to localStorage and server API
+export async function saveOfferToServer(offer: Offer): Promise<Offer[]> {
+  const current = getStoredOffers();
+  const updated = [offer, ...current.filter((o) => o.id !== offer.id)];
+  
+  // 1. Immediately save to local storage so it NEVER disappears
+  storeOffers(updated);
+
+  // 2. Sync to server API in background
+  try {
+    await fetch("/api/offers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(offer),
     });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.offers && Array.isArray(data.offers)) {
-        storeOffers(data.offers);
-        return data.offers;
-      }
-    }
   } catch (err) {
-    console.warn("Could not save offer to server API:", err);
+    console.warn("Could not sync offer to server API:", err);
   }
 
-  // Fallback to local store
-  const current = getStoredOffers();
-  const updated = [offer, ...current.filter((o) => o.id !== offer.id)];
-  storeOffers(updated);
   return updated;
 }
 
-// Delete offer from server API and localStorage
+// Delete offer from localStorage and server API
 export async function deleteOfferFromServer(id: string): Promise<Offer[]> {
-  try {
-    const res = await fetch(`/api/offers?id=${encodeURIComponent(id)}`, {
-      method: "DELETE",
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.offers && Array.isArray(data.offers)) {
-        storeOffers(data.offers);
-        return data.offers;
-      }
-    }
-  } catch (err) {
-    console.warn("Could not delete offer from server API:", err);
-  }
-
-  // Fallback to local store
   const current = getStoredOffers();
   const updated = current.filter((o) => o.id !== id);
+
+  // 1. Immediately update local storage
   storeOffers(updated);
+
+  // 2. Sync deletion to server API
+  try {
+    await fetch(`/api/offers?id=${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+  } catch (err) {
+    console.warn("Could not sync delete to server API:", err);
+  }
+
   return updated;
 }
 
-// Delete all offers from server API and localStorage
+// Delete all offers from localStorage and server API
 export async function deleteAllOffersFromServer(): Promise<Offer[]> {
+  storeOffers([]);
+
   try {
-    const res = await fetch(`/api/offers?id=ALL`, {
+    await fetch(`/api/offers?id=ALL`, {
       method: "DELETE",
     });
-    if (res.ok) {
-      storeOffers([]);
-      return [];
-    }
   } catch (err) {
-    console.warn("Could not delete all offers from server API:", err);
+    console.warn("Could not sync delete all to server API:", err);
   }
 
-  storeOffers([]);
   return [];
 }
 
-// Compress image to a high quality, low footprint data URL for instant client storage
-export function compressImageFile(file: File, maxWidth = 1200, quality = 0.85): Promise<string> {
+// Compress image to lightweight, high quality data URL (max 900px, quality 0.75 ~50-80KB)
+export function compressImageFile(file: File, maxWidth = 900, quality = 0.75): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -160,7 +168,6 @@ export function compressImageFile(file: File, maxWidth = 1200, quality = 0.85): 
         }
 
         ctx.drawImage(img, 0, 0, width, height);
-        // Try webp first, fallback to jpeg
         try {
           const webpData = canvas.toDataURL("image/webp", quality);
           if (webpData.startsWith("data:image/webp")) {

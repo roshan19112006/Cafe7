@@ -95,6 +95,7 @@ export default function AdminManager({ isOpen, onClose, onOffersChange }: AdminM
     setIsAuthenticated(false);
     if (typeof window !== "undefined") {
       localStorage.removeItem(STORAGE_KEY_AUTH);
+      window.dispatchEvent(new Event("cafe7_auth_changed"));
     }
   };
 
