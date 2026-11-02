@@ -1,48 +1,61 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import { put, list } from "@vercel/blob";
 
 const CLOUD_DB_URL = "https://api.restful-api.dev/objects/ff808181a09d98f701a19cfb2f361157";
 const DATA_FILE = path.join(process.cwd(), "src", "data", "offers.json");
 
-// Helper to read from local file fallback
-function readLocalFallback(): any[] {
+// 1. Vercel Blob Helpers (Active when user connects Blob in Vercel)
+async function getFromBlob(): Promise<any[] | null> {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) return null;
   try {
-    if (fs.existsSync(DATA_FILE)) {
-      const data = fs.readFileSync(DATA_FILE, "utf-8");
-      const list = JSON.parse(data || "[]");
-      return Array.isArray(list)
-        ? list.filter((o: any) => o && o.id !== "offer-1" && o.id !== "offer-2")
-        : [];
+    const { blobs } = await list({ prefix: "cafe7-offers.json" });
+    if (blobs && blobs.length > 0) {
+      const res = await fetch(blobs[0].url, { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          return data.filter((o: any) => o && o.id !== "offer-1" && o.id !== "offer-2");
+        }
+      }
     }
-  } catch {
-    // fallback
+    return [];
+  } catch (err) {
+    console.warn("Vercel Blob read error:", err);
+    return null;
   }
-  return [];
 }
 
-// Helper to write to local file fallback
-function writeLocalFallback(offers: any[]) {
+async function saveToBlob(offers: any[]): Promise<boolean> {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) return false;
   try {
-    const dir = path.dirname(DATA_FILE);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
     const clean = offers.filter((o: any) => o && o.id !== "offer-1" && o.id !== "offer-2");
-    fs.writeFileSync(DATA_FILE, JSON.stringify(clean, null, 2), "utf-8");
-  } catch {
-    // ignore on readonly filesystem like Vercel
+    await put("cafe7-offers.json", JSON.stringify(clean), {
+      access: "public",
+      addRandomSuffix: false,
+      contentType: "application/json",
+    });
+    return true;
+  } catch (err) {
+    console.error("Vercel Blob save error:", err);
+    return false;
   }
 }
 
-// Read offers from Cloud DB with local fallback
+// 2. Cloud DB Helpers
 async function getCloudOffers(): Promise<any[]> {
+  // Check Vercel Blob first
+  const blobOffers = await getFromBlob();
+  if (blobOffers !== null) {
+    return blobOffers;
+  }
+
+  // Cloud DB fallback
   try {
     const res = await fetch(CLOUD_DB_URL, {
       cache: "no-store",
-      headers: {
-        "Cache-Control": "no-cache",
-      },
+      headers: { "Cache-Control": "no-cache" },
     });
     if (res.ok) {
       const json = await res.json();
@@ -54,14 +67,30 @@ async function getCloudOffers(): Promise<any[]> {
   } catch (err) {
     console.warn("Could not read from cloud DB, trying local fallback:", err);
   }
-  return readLocalFallback();
+
+  // Local file fallback
+  try {
+    if (fs.existsSync(DATA_FILE)) {
+      const data = fs.readFileSync(DATA_FILE, "utf-8");
+      const list = JSON.parse(data || "[]");
+      return Array.isArray(list)
+        ? list.filter((o: any) => o && o.id !== "offer-1" && o.id !== "offer-2")
+        : [];
+    }
+  } catch {
+    // fallback
+  }
+
+  return [];
 }
 
-// Save offers to Cloud DB with local fallback
 async function saveCloudOffers(offers: any[]): Promise<any[]> {
   const clean = offers.filter((o: any) => o && o.id !== "offer-1" && o.id !== "offer-2");
-  writeLocalFallback(clean);
 
+  // Save to Vercel Blob if available
+  await saveToBlob(clean);
+
+  // Always sync to Cloud DB
   try {
     const res = await fetch(CLOUD_DB_URL, {
       method: "PUT",
@@ -79,6 +108,15 @@ async function saveCloudOffers(offers: any[]): Promise<any[]> {
     }
   } catch (err) {
     console.error("Failed to write to cloud DB:", err);
+  }
+
+  // Try local file as well
+  try {
+    const dir = path.dirname(DATA_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(DATA_FILE, JSON.stringify(clean, null, 2), "utf-8");
+  } catch {
+    // ignore
   }
 
   return clean;
