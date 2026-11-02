@@ -8,7 +8,10 @@ import {
   storeOffers,
   compressImageFile,
   STORAGE_KEY_AUTH,
-  DEFAULT_OFFERS
+  fetchOffersFromServer,
+  saveOfferToServer,
+  deleteOfferFromServer,
+  deleteAllOffersFromServer,
 } from "@/data/offers";
 import {
   Lock,
@@ -19,10 +22,9 @@ import {
   Upload,
   CheckCircle2,
   AlertTriangle,
-  RefreshCw,
   Eye,
   Calendar,
-  Sparkles
+  Sparkles,
 } from "lucide-react";
 
 interface AdminManagerProps {
@@ -47,19 +49,22 @@ export default function AdminManager({ isOpen, onClose, onOffersChange }: AdminM
   const [description, setDescription] = useState<string>("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isCompressing, setIsCompressing] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [confirmDeleteAll, setConfirmDeleteAll] = useState<boolean>(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Check auth session
+  // Check auth session & load offers
   useEffect(() => {
     if (typeof window !== "undefined") {
       const isAuth = localStorage.getItem(STORAGE_KEY_AUTH) === "true";
       setIsAuthenticated(isAuth);
-      setOffers(getStoredOffers());
+      fetchOffersFromServer().then((loaded) => {
+        setOffers(loaded);
+      });
     }
   }, [isOpen]);
 
@@ -67,7 +72,6 @@ export default function AdminManager({ isOpen, onClose, onOffersChange }: AdminM
     e.preventDefault();
     setAuthError(null);
 
-    // Default credentials: admin / cafe7admin (or cafe7@2026)
     const validUsers = ["admin", "cafe7"];
     const validPasswords = ["cafe7admin", "cafe7@2026", "cafe7"];
 
@@ -79,7 +83,9 @@ export default function AdminManager({ isOpen, onClose, onOffersChange }: AdminM
       if (typeof window !== "undefined") {
         localStorage.setItem(STORAGE_KEY_AUTH, "true");
       }
-      setOffers(getStoredOffers());
+      fetchOffersFromServer().then((loaded) => {
+        setOffers(loaded);
+      });
     } else {
       setAuthError("Invalid admin credentials. Please verify your username and password.");
     }
@@ -114,7 +120,7 @@ export default function AdminManager({ isOpen, onClose, onOffersChange }: AdminM
     }
   };
 
-  const handleCreateOffer = (e: React.FormEvent) => {
+  const handleCreateOffer = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
     setFormSuccess(null);
@@ -141,12 +147,12 @@ export default function AdminManager({ isOpen, onClose, onOffersChange }: AdminM
       image: imagePreview,
       badge: badge.trim() || undefined,
       validTill: validTill.trim() || undefined,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
 
     try {
-      const updated = [newOffer, ...offers];
-      storeOffers(updated);
+      setIsSubmitting(true);
+      const updated = await saveOfferToServer(newOffer);
       setOffers(updated);
       setFormSuccess(`Offer "${newOffer.title}" published successfully!`);
 
@@ -159,42 +165,45 @@ export default function AdminManager({ isOpen, onClose, onOffersChange }: AdminM
       if (fileInputRef.current) fileInputRef.current.value = "";
 
       if (onOffersChange) onOffersChange();
-      setTimeout(() => setFormSuccess(null), 3000);
+      setTimeout(() => setFormSuccess(null), 3500);
     } catch (err) {
       console.error(err);
-      setFormError("Storage full or error saving offer. Try uploading a smaller image.");
+      setFormError("Error saving offer. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleDeleteOffer = (id: string, offerTitle: string) => {
-    if (!window.confirm(`Are you sure you want to delete "${offerTitle}"?`)) {
-      return;
+  const handleDeleteOffer = async (id: string, offerTitle: string) => {
+    try {
+      setIsDeletingId(id);
+      setFormError(null);
+      const updated = await deleteOfferFromServer(id);
+      setOffers(updated);
+      setFormSuccess(`Offer "${offerTitle}" deleted successfully!`);
+      setTimeout(() => setFormSuccess(null), 3000);
+      if (onOffersChange) onOffersChange();
+    } catch (err) {
+      console.error("Delete offer failed:", err);
+      setFormError("Failed to delete offer. Please try again.");
+    } finally {
+      setIsDeletingId(null);
     }
-
-    const updated = offers.filter((o) => o.id !== id);
-    storeOffers(updated);
-    setOffers(updated);
-    if (onOffersChange) onOffersChange();
   };
 
-  const handleDeleteAllOffers = () => {
-    if (
-      !window.confirm(
-        "Are you sure you want to DELETE ALL OFFERS? The offers page will display 'No offers available'."
-      )
-    ) {
-      return;
+  const handleDeleteAllOffers = async () => {
+    try {
+      setFormError(null);
+      await deleteAllOffersFromServer();
+      setOffers([]);
+      setConfirmDeleteAll(false);
+      setFormSuccess("All offers deleted! The page now displays 'No Offer Available'.");
+      setTimeout(() => setFormSuccess(null), 3500);
+      if (onOffersChange) onOffersChange();
+    } catch (err) {
+      console.error("Delete all offers failed:", err);
+      setFormError("Failed to delete all offers.");
     }
-
-    storeOffers([]);
-    setOffers([]);
-    if (onOffersChange) onOffersChange();
-  };
-
-  const handleResetDefaults = () => {
-    storeOffers(DEFAULT_OFFERS);
-    setOffers(DEFAULT_OFFERS);
-    if (onOffersChange) onOffersChange();
   };
 
   if (!isOpen) return null;
@@ -221,18 +230,33 @@ export default function AdminManager({ isOpen, onClose, onOffersChange }: AdminM
             </h2>
             <p className="text-xs text-stone-500">
               {isAuthenticated
-                ? "Manage promotional banners, discounts & limited-time deals"
-                : "Authorized staff login to upload and delete offers"}
+                ? "Manage promotional posters and special deals"
+                : "Enter credentials to manage offers"}
             </p>
           </div>
         </div>
 
-        {/* Login State */}
+        {/* Success / Error Banners */}
+        {formSuccess && (
+          <div className="mt-4 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center space-x-2 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="font-semibold">{formSuccess}</span>
+          </div>
+        )}
+
+        {formError && (
+          <div className="mt-4 p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center space-x-2 animate-in fade-in">
+            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>{formError}</span>
+          </div>
+        )}
+
         {!isAuthenticated ? (
+          /* Login Form */
           <form onSubmit={handleLogin} className="mt-6 space-y-4">
             {authError && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center space-x-2">
-                <AlertTriangle className="w-4 h-4 shrink-0" />
+              <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center space-x-2">
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
                 <span>{authError}</span>
               </div>
             )}
@@ -245,7 +269,7 @@ export default function AdminManager({ isOpen, onClose, onOffersChange }: AdminM
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="e.g. admin"
+                placeholder="Enter username"
                 className="w-full bg-[#FAF5EE] border border-[#E8D8C6] rounded-xl px-4 py-2.5 text-sm text-[#2F2622] focus:outline-none focus:border-[#A97A55]"
                 required
               />
@@ -281,172 +305,156 @@ export default function AdminManager({ isOpen, onClose, onOffersChange }: AdminM
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => setActiveTab("upload")}
-                  className={`px-4 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer flex items-center space-x-1.5 ${
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center space-x-1.5 ${
                     activeTab === "upload"
-                      ? "bg-[#2F2622] text-white shadow-sm"
-                      : "bg-white text-[#3B312C] hover:bg-[#E8D8C6]"
+                      ? "bg-[#A97A55] text-white shadow-xs"
+                      : "text-stone-600 hover:text-stone-900"
                   }`}
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>Upload Offer</span>
+                  <span>Upload New Offer</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("manage")}
-                  className={`px-4 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer flex items-center space-x-1.5 ${
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center space-x-1.5 ${
                     activeTab === "manage"
-                      ? "bg-[#2F2622] text-white shadow-sm"
-                      : "bg-white text-[#3B312C] hover:bg-[#E8D8C6]"
+                      ? "bg-[#A97A55] text-white shadow-xs"
+                      : "text-stone-600 hover:text-stone-900"
                   }`}
                 >
-                  <span>Active Offers</span>
-                  <span className="bg-black/10 px-1.5 py-0.5 rounded-full text-[10px]">
-                    {offers.length}
-                  </span>
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>Active Offers ({offers.length})</span>
                 </button>
               </div>
 
               <button
                 onClick={handleLogout}
-                className="text-xs text-rose-700 hover:text-rose-900 font-semibold px-3 py-1 rounded-full hover:bg-rose-50 transition cursor-pointer"
+                className="text-xs text-stone-500 hover:text-rose-600 cursor-pointer transition font-medium"
               >
-                Logout
+                Log Out
               </button>
             </div>
 
-            {/* TAB 1: UPLOAD OFFER */}
+            {/* TAB 1: UPLOAD FORM */}
             {activeTab === "upload" && (
               <form onSubmit={handleCreateOffer} className="space-y-4">
-                {formError && (
-                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center space-x-2">
-                    <AlertTriangle className="w-4 h-4 shrink-0" />
-                    <span>{formError}</span>
-                  </div>
-                )}
-                {formSuccess && (
-                  <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center space-x-2">
-                    <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    <span>{formSuccess}</span>
-                  </div>
-                )}
+                <div>
+                  <label className="block text-xs font-semibold text-[#2F2622] uppercase tracking-wider mb-1">
+                    Offer Title *
+                  </label>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="e.g. Weekend Burger & Shake Combo Fest"
+                    className="w-full bg-[#FAF5EE] border border-[#E8D8C6] rounded-xl px-4 py-2.5 text-sm text-[#2F2622] focus:outline-none focus:border-[#A97A55]"
+                    required
+                  />
+                </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-[#2F2622] mb-1">
-                      Offer Title *
-                    </label>
-                    <input
-                      type="text"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      placeholder="e.g. Weekend Burger & Shake Fest"
-                      className="w-full bg-[#FAF5EE] border border-[#E8D8C6] rounded-xl px-3 py-2 text-xs text-[#2F2622] focus:outline-none focus:border-[#A97A55]"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-[#2F2622] mb-1">
-                      Badge / Tag (Optional)
+                    <label className="block text-xs font-semibold text-[#2F2622] uppercase tracking-wider mb-1">
+                      Badge Text (Optional)
                     </label>
                     <input
                       type="text"
                       value={badge}
                       onChange={(e) => setBadge(e.target.value)}
-                      placeholder="e.g. 50% OFF, BUY 1 GET 1, LIMITED TIME"
-                      className="w-full bg-[#FAF5EE] border border-[#E8D8C6] rounded-xl px-3 py-2 text-xs text-[#2F2622] focus:outline-none focus:border-[#A97A55]"
+                      placeholder="e.g. 50% OFF, BUY 1 GET 1"
+                      className="w-full bg-[#FAF5EE] border border-[#E8D8C6] rounded-xl px-4 py-2.5 text-sm text-[#2F2622] focus:outline-none focus:border-[#A97A55]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[#2F2622] uppercase tracking-wider mb-1">
+                      Validity Period (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={validTill}
+                      onChange={(e) => setValidTill(e.target.value)}
+                      placeholder="e.g. Valid till Sunday midnight"
+                      className="w-full bg-[#FAF5EE] border border-[#E8D8C6] rounded-xl px-4 py-2.5 text-sm text-[#2F2622] focus:outline-none focus:border-[#A97A55]"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#2F2622] mb-1">
-                    Validity / Timing (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={validTill}
-                    onChange={(e) => setValidTill(e.target.value)}
-                    placeholder="e.g. Valid until Sunday, or Daily 3 PM - 7 PM"
-                    className="w-full bg-[#FAF5EE] border border-[#E8D8C6] rounded-xl px-3 py-2 text-xs text-[#2F2622] focus:outline-none focus:border-[#A97A55]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#2F2622] mb-1">
-                    Offer Details & Terms *
+                  <label className="block text-xs font-semibold text-[#2F2622] uppercase tracking-wider mb-1">
+                    Offer Details / Terms *
                   </label>
                   <textarea
                     rows={3}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Describe what customers get, applicable items, dine-in / takeaway rules..."
-                    className="w-full bg-[#FAF5EE] border border-[#E8D8C6] rounded-xl px-3 py-2 text-xs text-[#2F2622] focus:outline-none focus:border-[#A97A55]"
+                    placeholder="Describe the offer, eligible items, terms or conditions..."
+                    className="w-full bg-[#FAF5EE] border border-[#E8D8C6] rounded-xl px-4 py-2 text-sm text-[#2F2622] focus:outline-none focus:border-[#A97A55]"
                     required
                   />
                 </div>
 
-                {/* Image Upload Area */}
+                {/* Poster Image Upload */}
                 <div>
-                  <label className="block text-xs font-semibold text-[#2F2622] mb-1">
-                    Offer Image / Poster *
+                  <label className="block text-xs font-semibold text-[#2F2622] uppercase tracking-wider mb-1">
+                    Offer Poster / Image *
                   </label>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleImageSelect}
-                    accept="image/*"
-                    className="hidden"
-                    id="admin-offer-image"
-                  />
 
-                  {imagePreview ? (
-                    <div className="relative rounded-2xl overflow-hidden border border-[#E8D8C6] bg-stone-100 max-h-56 flex items-center justify-center group">
-                      <img
-                        src={imagePreview}
-                        alt="Offer preview"
-                        className="object-contain max-h-56 w-full"
-                      />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center space-x-2">
-                        <label
-                          htmlFor="admin-offer-image"
-                          className="px-3 py-1.5 rounded-full bg-white text-[#2F2622] text-xs font-semibold cursor-pointer shadow-md hover:bg-stone-100"
-                        >
-                          Change Image
-                        </label>
+                  <div className="mt-1">
+                    {imagePreview ? (
+                      <div className="relative rounded-2xl overflow-hidden border border-[#E8D8C6] bg-stone-50 max-h-56 flex items-center justify-center group">
+                        <img
+                          src={imagePreview}
+                          alt="Offer preview"
+                          className="max-h-56 w-auto object-contain"
+                        />
                         <button
                           type="button"
                           onClick={() => {
                             setImagePreview(null);
                             if (fileInputRef.current) fileInputRef.current.value = "";
                           }}
-                          className="px-3 py-1.5 rounded-full bg-rose-600 text-white text-xs font-semibold cursor-pointer shadow-md hover:bg-rose-700"
+                          className="absolute top-2 right-2 p-1.5 rounded-full bg-rose-600 text-white shadow-md hover:bg-rose-700 cursor-pointer transition"
+                          title="Remove image"
                         >
-                          Remove
+                          <X className="w-4 h-4" />
                         </button>
                       </div>
-                    </div>
-                  ) : (
-                    <label
-                      htmlFor="admin-offer-image"
-                      className="border-2 border-dashed border-[#E8D8C6] hover:border-[#A97A55] rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition bg-[#FAF5EE]/50 hover:bg-[#FAF5EE]"
-                    >
-                      <Upload className="w-8 h-8 text-[#A97A55] mb-2" />
-                      <span className="text-xs font-semibold text-[#2F2622]">
-                        {isCompressing ? "Processing image..." : "Click to browse or drag & drop poster"}
-                      </span>
-                      <span className="text-[10px] text-stone-400 mt-1">
-                        Supports PNG, JPG, WEBP (auto-compressed for fast viewing)
-                      </span>
-                    </label>
-                  )}
+                    ) : (
+                      <div
+                        onClick={() => fileInputRef.current?.click()}
+                        className="border-2 border-dashed border-[#A97A55]/40 hover:border-[#A97A55] rounded-2xl p-6 text-center cursor-pointer bg-[#FAF5EE] hover:bg-[#F4EEE7] transition flex flex-col items-center justify-center space-y-2"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-[#A97A55]/10 flex items-center justify-center text-[#A97A55]">
+                          <Upload className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-[#2F2622]">
+                            {isCompressing ? "Optimizing image..." : "Click to upload offer poster image"}
+                          </p>
+                          <p className="text-[10px] text-stone-500 mt-0.5">
+                            PNG, JPG or WEBP (auto-compressed for fastest loading)
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageSelect}
+                      className="hidden"
+                    />
+                  </div>
                 </div>
 
                 <button
                   type="submit"
-                  disabled={isCompressing}
-                  className="w-full py-3 rounded-full bg-[#A97A55] text-white font-semibold text-xs uppercase tracking-wider hover:bg-[#8e643f] transition shadow-md cursor-pointer flex items-center justify-center space-x-2 disabled:opacity-50"
+                  disabled={isSubmitting || isCompressing}
+                  className="w-full mt-2 py-3 rounded-full bg-[#A97A55] text-white font-semibold text-sm hover:bg-[#8e643f] transition shadow-md cursor-pointer flex items-center justify-center space-x-2 disabled:opacity-50"
                 >
-                  <Sparkles className="w-4 h-4" />
-                  <span>Publish Offer Live</span>
+                  <Plus className="w-4 h-4" />
+                  <span>{isSubmitting ? "Publishing Offer..." : "Publish Offer to Website"}</span>
                 </button>
               </form>
             )}
@@ -459,29 +467,15 @@ export default function AdminManager({ isOpen, onClose, onOffersChange }: AdminM
                     Total Active Offers: {offers.length}
                   </span>
                   <div className="flex items-center space-x-2">
-                    {offers.length === 0 && (
-                      <button
-                        onClick={handleResetDefaults}
-                        className="text-[11px] font-semibold text-[#A97A55] hover:underline flex items-center space-x-1 cursor-pointer"
-                      >
-                        <RefreshCw className="w-3 h-3" />
-                        <span>Restore Defaults</span>
-                      </button>
-                    )}
                     {offers.length > 0 && (
                       confirmDeleteAll ? (
                         <div className="flex items-center space-x-1.5 bg-rose-50 px-2 py-1 rounded-lg border border-rose-200">
                           <span className="text-[10px] text-rose-700 font-semibold">Delete all?</span>
                           <button
-                            onClick={() => {
-                              storeOffers([]);
-                              setOffers([]);
-                              setConfirmDeleteAll(false);
-                              if (onOffersChange) onOffersChange();
-                            }}
+                            onClick={handleDeleteAllOffers}
                             className="px-2 py-0.5 rounded-md bg-rose-600 text-white text-[10px] font-bold hover:bg-rose-700 cursor-pointer"
                           >
-                            Yes
+                            Yes, Delete All
                           </button>
                           <button
                             onClick={() => setConfirmDeleteAll(false)}
@@ -493,9 +487,9 @@ export default function AdminManager({ isOpen, onClose, onOffersChange }: AdminM
                       ) : (
                         <button
                           onClick={() => setConfirmDeleteAll(true)}
-                          className="text-[11px] font-semibold text-rose-600 hover:text-rose-800 transition cursor-pointer"
+                          className="text-[11px] font-semibold text-rose-600 hover:text-rose-800 transition cursor-pointer px-2.5 py-1 rounded-lg bg-rose-50 border border-rose-200"
                         >
-                          Delete All (Show Empty State)
+                          Delete All Offers
                         </button>
                       )
                     )}
@@ -508,7 +502,7 @@ export default function AdminManager({ isOpen, onClose, onOffersChange }: AdminM
                       No active offers uploaded
                     </p>
                     <p className="text-xs text-stone-500 mt-1">
-                      The public offers page currently displays &ldquo;No offers available&rdquo;.
+                      The public offers page currently displays &ldquo;No Offer Available&rdquo;.
                     </p>
                     <button
                       onClick={() => setActiveTab("upload")}
@@ -554,36 +548,16 @@ export default function AdminManager({ isOpen, onClose, onOffersChange }: AdminM
                           </div>
                         </div>
 
-                        {confirmDeleteId === offer.id ? (
-                          <div className="flex items-center space-x-1 shrink-0 bg-rose-50 p-1 rounded-xl border border-rose-200">
-                            <button
-                              onClick={() => {
-                                const updated = offers.filter((o) => o.id !== offer.id);
-                                storeOffers(updated);
-                                setOffers(updated);
-                                setConfirmDeleteId(null);
-                                if (onOffersChange) onOffersChange();
-                              }}
-                              className="px-2 py-1 rounded-lg bg-rose-600 text-white text-[10px] font-bold hover:bg-rose-700 cursor-pointer"
-                            >
-                              Delete
-                            </button>
-                            <button
-                              onClick={() => setConfirmDeleteId(null)}
-                              className="px-1.5 py-1 rounded-lg bg-stone-200 text-stone-700 text-[10px] hover:bg-stone-300 cursor-pointer"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => setConfirmDeleteId(offer.id)}
-                            className="shrink-0 p-2 rounded-xl text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition cursor-pointer"
-                            title="Delete this offer"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
+                        {/* Unmistakable Direct Delete Button */}
+                        <button
+                          onClick={() => handleDeleteOffer(offer.id, offer.title)}
+                          disabled={isDeletingId === offer.id}
+                          className="shrink-0 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-800 text-xs font-bold flex items-center space-x-1.5 transition cursor-pointer disabled:opacity-50"
+                          title="Delete this offer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>{isDeletingId === offer.id ? "Deleting..." : "Delete"}</span>
+                        </button>
                       </div>
                     ))}
                   </div>

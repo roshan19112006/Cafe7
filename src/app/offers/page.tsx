@@ -6,7 +6,10 @@ import Link from "next/link";
 import {
   Offer,
   getStoredOffers,
-  DEFAULT_OFFERS
+  DEFAULT_OFFERS,
+  fetchOffersFromServer,
+  deleteOfferFromServer,
+  STORAGE_KEY_AUTH,
 } from "@/data/offers";
 import AdminManager from "@/components/AdminManager";
 import {
@@ -24,27 +27,36 @@ import {
   X,
   Lock,
   UtensilsCrossed,
-  Menu as MenuIcon
+  Menu as MenuIcon,
+  Trash2
 } from "lucide-react";
 
 export default function OffersPage() {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [isAdminOpen, setIsAdminOpen] = useState<boolean>(false);
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const [selectedPreviewImage, setSelectedPreviewImage] = useState<Offer | null>(null);
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
 
-  const refreshOffers = () => {
+  const refreshOffers = async () => {
     if (typeof window !== "undefined") {
-      setOffers(getStoredOffers());
+      setIsAdminLoggedIn(localStorage.getItem(STORAGE_KEY_AUTH) === "true");
     }
+    const loaded = await fetchOffersFromServer();
+    setOffers(loaded);
+    setIsLoaded(true);
   };
 
   useEffect(() => {
     refreshOffers();
-    setIsLoaded(true);
 
-    const handleUpdate = () => refreshOffers();
+    const handleUpdate = () => {
+      if (typeof window !== "undefined") {
+        setIsAdminLoggedIn(localStorage.getItem(STORAGE_KEY_AUTH) === "true");
+        setOffers(getStoredOffers());
+      }
+    };
     window.addEventListener("cafe7_offers_updated", handleUpdate);
     window.addEventListener("storage", handleUpdate);
 
@@ -295,6 +307,23 @@ export default function OffersPage() {
                             {offer.badge}
                           </span>
                         </div>
+                      )}
+
+                      {/* Direct Admin Delete Button (if admin is authenticated) */}
+                      {isAdminLoggedIn && (
+                        <button
+                          type="button"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            await deleteOfferFromServer(offer.id);
+                            refreshOffers();
+                          }}
+                          className="absolute top-4 right-4 z-20 px-3 py-1 rounded-full bg-rose-600/95 hover:bg-rose-700 text-white text-[11px] font-bold flex items-center space-x-1 shadow-lg cursor-pointer transition border border-white/30"
+                          title="Delete this offer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Delete</span>
+                        </button>
                       )}
 
                       {/* Zoom hint overlay */}

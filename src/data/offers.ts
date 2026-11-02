@@ -11,40 +11,19 @@ export interface Offer {
 export const STORAGE_KEY_OFFERS = "cafe7_promotional_offers_v1";
 export const STORAGE_KEY_AUTH = "cafe7_admin_auth_v1";
 
-// Default sample offers to showcase initially if no custom offers are created
-export const DEFAULT_OFFERS: Offer[] = [
-  {
-    id: "offer-1",
-    title: "Weekend Burger & Shake Combo Fest",
-    description: "Order any Chicken Crunch Burger and get 50% off on your favorite Signature Milkshake. Valid on dine-in and takeaways.",
-    image: "/images/items/cafe-combo-meal.webp",
-    badge: "50% OFF SHAKE",
-    validTill: "Valid on Saturdays & Sundays",
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "offer-2",
-    title: "Cooler Hours: Refreshers & Mojitos BOGO",
-    description: "Beat the heat! Buy any 2 Mojitos or Refreshers and get the 3rd one on the house between 3:00 PM and 7:00 PM.",
-    image: "/images/items/blue-lagoon-mojito.webp",
-    badge: "BUY 2 GET 1",
-    validTill: "Daily 3:00 PM - 7:00 PM",
-    createdAt: new Date().toISOString()
-  }
-];
+// Empty by default: if no offers uploaded, the page displays "No Offer Available"
+export const DEFAULT_OFFERS: Offer[] = [];
 
-// Helper to get offers from localStorage safely in Next.js client
+// Helper to get offers from localStorage safely in Next.js client (synchronous fallback)
 export function getStoredOffers(): Offer[] {
   if (typeof window === "undefined") {
-    return DEFAULT_OFFERS;
+    return [];
   }
 
   try {
     const raw = localStorage.getItem(STORAGE_KEY_OFFERS);
     if (!raw) {
-      // First time initialization: populate default offers
-      localStorage.setItem(STORAGE_KEY_OFFERS, JSON.stringify(DEFAULT_OFFERS));
-      return DEFAULT_OFFERS;
+      return [];
     }
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
@@ -54,7 +33,7 @@ export function getStoredOffers(): Offer[] {
   }
 }
 
-// Helper to save offers to localStorage
+// Helper to save offers to localStorage synchronously
 export function storeOffers(offers: Offer[]): void {
   if (typeof window === "undefined") return;
   try {
@@ -63,8 +42,97 @@ export function storeOffers(offers: Offer[]): void {
     window.dispatchEvent(new Event("cafe7_offers_updated"));
   } catch (e) {
     console.error("Failed to store offers in localStorage:", e);
-    throw e;
   }
+}
+
+// Fetch offers from server API and synchronize with localStorage
+export async function fetchOffersFromServer(): Promise<Offer[]> {
+  try {
+    const res = await fetch("/api/offers", {
+      cache: "no-store",
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        if (typeof window !== "undefined") {
+          localStorage.setItem(STORAGE_KEY_OFFERS, JSON.stringify(data));
+          window.dispatchEvent(new Event("cafe7_offers_updated"));
+        }
+        return data;
+      }
+    }
+  } catch (err) {
+    console.warn("Could not fetch offers from server API, falling back to local storage:", err);
+  }
+  return getStoredOffers();
+}
+
+// Save offer to server API and localStorage
+export async function saveOfferToServer(offer: Offer): Promise<Offer[]> {
+  try {
+    const res = await fetch("/api/offers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(offer),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.offers && Array.isArray(data.offers)) {
+        storeOffers(data.offers);
+        return data.offers;
+      }
+    }
+  } catch (err) {
+    console.warn("Could not save offer to server API:", err);
+  }
+
+  // Fallback to local store
+  const current = getStoredOffers();
+  const updated = [offer, ...current.filter((o) => o.id !== offer.id)];
+  storeOffers(updated);
+  return updated;
+}
+
+// Delete offer from server API and localStorage
+export async function deleteOfferFromServer(id: string): Promise<Offer[]> {
+  try {
+    const res = await fetch(`/api/offers?id=${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.offers && Array.isArray(data.offers)) {
+        storeOffers(data.offers);
+        return data.offers;
+      }
+    }
+  } catch (err) {
+    console.warn("Could not delete offer from server API:", err);
+  }
+
+  // Fallback to local store
+  const current = getStoredOffers();
+  const updated = current.filter((o) => o.id !== id);
+  storeOffers(updated);
+  return updated;
+}
+
+// Delete all offers from server API and localStorage
+export async function deleteAllOffersFromServer(): Promise<Offer[]> {
+  try {
+    const res = await fetch(`/api/offers?id=ALL`, {
+      method: "DELETE",
+    });
+    if (res.ok) {
+      storeOffers([]);
+      return [];
+    }
+  } catch (err) {
+    console.warn("Could not delete all offers from server API:", err);
+  }
+
+  storeOffers([]);
+  return [];
 }
 
 // Compress image to a high quality, low footprint data URL for instant client storage
