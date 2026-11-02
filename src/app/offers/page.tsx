@@ -436,7 +436,7 @@ export default function OffersPage() {
           </div>
         </div>
 
-        <div className="border-t border-[#E8D8C6] px-4 py-5 pb-28 md:pb-5 text-xs text-stone-500 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+        <div className="border-t border-[#E8D8C6] px-4 py-5 text-xs text-stone-500 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
           <span>
             © {new Date().getFullYear()} Café 7. All rights reserved.
           </span>
@@ -455,44 +455,6 @@ export default function OffersPage() {
           </button>
         </div>
       </footer>
-
-      {/* Mobile Floating Bottom Bar for Quick 1-Tap Navigation */}
-      <nav
-        aria-label="Mobile quick navigation"
-        className="md:hidden fixed bottom-3 left-3 right-3 z-40 bg-[#2F2622]/95 backdrop-blur-md rounded-full border border-white/10 px-4 py-2.5 shadow-2xl flex items-center justify-around text-white"
-      >
-        <Link href="/" className="flex flex-col items-center text-[10px] text-stone-300 hover:text-white transition">
-          <span className="text-base">🏠</span>
-          <span className="mt-0.5">Home</span>
-        </Link>
-        <Link href="/#menu-section" className="flex flex-col items-center text-[10px] text-stone-300 hover:text-white transition">
-          <span className="text-base">🍔</span>
-          <span className="mt-0.5">Menu</span>
-        </Link>
-        <Link href="/offers" className="flex flex-col items-center text-[10px] text-rose-300 hover:text-white transition relative">
-          <span className="text-base">🏷️</span>
-          <span className="mt-0.5 font-bold text-rose-300">Offers</span>
-          <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-        </Link>
-        <a
-          href="https://wa.me/917200699989?text=Hi%20Cafe%207!%20I%20would%20like%20to%20order."
-          target="_blank"
-          rel="noreferrer"
-          className="flex flex-col items-center text-[10px] text-emerald-400 hover:text-white transition"
-        >
-          <MessageCircle className="w-5 h-5 text-emerald-400" />
-          <span className="mt-0.5">Chat</span>
-        </a>
-        <button
-          onClick={() => setIsAdminOpen(true)}
-          className="flex flex-col items-center text-[10px] text-stone-300 hover:text-white transition cursor-pointer"
-          title="Admin Login"
-          aria-label="Admin Login"
-        >
-          <Lock className="w-4 h-4 text-[#C59B76]" />
-          <span className="mt-0.5 text-[9px] text-[#C59B76] font-semibold">Admin</span>
-        </button>
-      </nav>
     </div>
   );
 }

@@ -1111,7 +1111,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="border-t border-[#E8D8C6] px-4 py-5 pb-28 md:pb-5 text-xs text-[#3B312C] sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+        <div className="border-t border-[#E8D8C6] px-4 py-5 text-xs text-[#3B312C] sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
           <span>© {new Date().getFullYear()} Cafe 7. All rights reserved.</span>
 
           {/* Discreet Admin Login Trigger at down end of page */}
@@ -1128,49 +1128,6 @@ export default function Home() {
           </button>
         </div>
       </footer>
-
-      {/* Mobile Floating Bottom Bar for Quick 1-Tap Navigation */}
-      <nav
-        aria-label="Mobile quick navigation"
-        className="md:hidden fixed bottom-3 left-3 right-3 z-40 bg-[#2F2622]/95 backdrop-blur-md rounded-full border border-white/10 px-4 py-2.5 shadow-2xl flex items-center justify-around text-white"
-      >
-        <Link href="/" className="flex flex-col items-center text-[10px] text-stone-300 hover:text-white transition">
-          <span className="text-base">🏠</span>
-          <span className="mt-0.5">Home</span>
-        </Link>
-        <a href="#menu-section" className="flex flex-col items-center text-[10px] text-stone-300 hover:text-white transition">
-          <span className="text-base">🍔</span>
-          <span className="mt-0.5">Menu</span>
-        </a>
-        <Link href="/offers" className="flex flex-col items-center text-[10px] text-rose-300 hover:text-white transition relative">
-          <span className="text-base">🏷️</span>
-          <span className="mt-0.5">Offers</span>
-          <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-        </Link>
-        <button
-          onClick={() => setIsCartOpen(true)}
-          className="flex flex-col items-center text-[10px] text-[#A97A55] hover:text-white transition relative cursor-pointer"
-        >
-          <div className="relative">
-            <ShoppingBag className="w-5 h-5 text-[#A97A55]" />
-            {cartItemCount > 0 && (
-              <span className="absolute -top-1.5 -right-2 bg-rose-500 text-white text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                {cartItemCount}
-              </span>
-            )}
-          </div>
-          <span className="mt-0.5">Order</span>
-        </button>
-        <button
-          onClick={() => setIsAdminOpen(true)}
-          className="flex flex-col items-center text-[10px] text-stone-300 hover:text-white transition cursor-pointer"
-          title="Admin Login"
-          aria-label="Admin Login"
-        >
-          <Lock className="w-4 h-4 text-[#C59B76]" />
-          <span className="mt-0.5 text-[9px] text-[#C59B76] font-semibold">Admin</span>
-        </button>
-      </nav>
 
       {/* Admin Manager Modal */}
       <AdminManager
