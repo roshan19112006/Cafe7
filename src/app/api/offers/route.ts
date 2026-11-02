@@ -54,27 +54,35 @@ async function saveToBlob(offers: any[]): Promise<boolean> {
 
 // 2. Cloud DB Helpers
 async function getCloudOffers(): Promise<any[]> {
-  // Check Vercel Blob first
+  // 1. Check Vercel Blob first
   const blobOffers = await getFromBlob();
-  if (blobOffers !== null) {
+  if (blobOffers && blobOffers.length > 0) {
     return blobOffers;
   }
 
-  // Cloud DB fallback
+  // 2. Cloud DB fallback (Primary persistent storage)
   try {
-    const res = await fetch(CLOUD_DB_URL, {
+    const res = await fetch(`${CLOUD_DB_URL}?t=${Date.now()}`, {
       cache: "no-store",
-      headers: { "Cache-Control": "no-cache" },
+      headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
     });
     if (res.ok) {
       const json = await res.json();
       const list = json?.data?.offers;
       if (Array.isArray(list)) {
-        return list.filter((o: any) => o && o.id !== "offer-1" && o.id !== "offer-2");
+        const clean = list.filter((o: any) => o && o.id !== "offer-1" && o.id !== "offer-2");
+        if (clean.length > 0) {
+          saveToBlob(clean).catch(() => {});
+          return clean;
+        }
       }
     }
   } catch (err) {
     console.warn("Could not read from cloud DB, trying local fallback:", err);
+  }
+
+  if (blobOffers !== null) {
+    return blobOffers;
   }
 
   // Local file fallback
