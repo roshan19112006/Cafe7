@@ -7,11 +7,19 @@ const DATA_FILE = path.join(process.cwd(), "src", "data", "offers.json");
 function readOffersFromFile(): any[] {
   try {
     if (!fs.existsSync(DATA_FILE)) {
+      const dir = path.dirname(DATA_FILE);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
       fs.writeFileSync(DATA_FILE, "[]", "utf-8");
       return [];
     }
     const data = fs.readFileSync(DATA_FILE, "utf-8");
-    return JSON.parse(data || "[]");
+    const list = JSON.parse(data || "[]");
+    // Ensure old demo offers are never returned
+    return Array.isArray(list)
+      ? list.filter((o: any) => o && o.id !== "offer-1" && o.id !== "offer-2")
+      : [];
   } catch (err) {
     console.error("Error reading offers.json:", err);
     return [];
@@ -24,7 +32,9 @@ function writeOffersToFile(offers: any[]): boolean {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(DATA_FILE, JSON.stringify(offers, null, 2), "utf-8");
+    // Clean out demo offers before saving
+    const cleaned = offers.filter((o: any) => o && o.id !== "offer-1" && o.id !== "offer-2");
+    fs.writeFileSync(DATA_FILE, JSON.stringify(cleaned, null, 2), "utf-8");
     return true;
   } catch (err) {
     console.error("Error writing offers.json:", err);
@@ -32,24 +42,26 @@ function writeOffersToFile(offers: any[]): boolean {
   }
 }
 
-// GET /api/offers
+// GET /api/offers - Always fresh, no cache
 export async function GET() {
   const offers = readOffersFromFile();
   return NextResponse.json(offers, {
     headers: {
-      "Cache-Control": "no-store, no-cache, must-revalidate",
+      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      Pragma: "no-cache",
+      Expires: "0",
     },
   });
 }
 
-// POST /api/offers - Add a new offer or replace all offers
+// POST /api/offers - Add new offer or sync all offers
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
     if (body.offers && Array.isArray(body.offers)) {
       writeOffersToFile(body.offers);
-      return NextResponse.json({ success: true, offers: body.offers });
+      return NextResponse.json({ success: true, offers: readOffersFromFile() });
     }
 
     if (!body.title || !body.image) {
@@ -92,7 +104,7 @@ export async function DELETE(req: NextRequest) {
     if (!id) {
       try {
         const body = await req.json();
-        id = body.id;
+        id = body?.id;
       } catch {
         // body might be empty
       }

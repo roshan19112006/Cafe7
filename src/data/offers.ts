@@ -8,24 +8,51 @@ export interface Offer {
   createdAt: string;
 }
 
-export const STORAGE_KEY_OFFERS = "cafe7_promotional_offers_v1";
+export const STORAGE_KEY_OFFERS = "cafe7_active_offers_v3";
+export const LEGACY_STORAGE_KEYS = [
+  "cafe7_promotional_offers_v1",
+  "cafe7_promotional_offers_v2",
+];
 export const STORAGE_KEY_AUTH = "cafe7_admin_auth_v1";
 
 export const DEFAULT_OFFERS: Offer[] = [];
 
-// Helper to get offers from localStorage safely in Next.js client
+// Helper to get offers from localStorage safely in Next.js client with legacy cleanup
 export function getStoredOffers(): Offer[] {
   if (typeof window === "undefined") {
     return [];
   }
 
   try {
+    // 1. One-time legacy cleanup: Remove demo offers from old storage keys
+    for (const oldKey of LEGACY_STORAGE_KEYS) {
+      const oldRaw = localStorage.getItem(oldKey);
+      if (oldRaw) {
+        localStorage.removeItem(oldKey);
+        try {
+          const oldList: Offer[] = JSON.parse(oldRaw);
+          const validCustom = Array.isArray(oldList)
+            ? oldList.filter((o) => o && o.id !== "offer-1" && o.id !== "offer-2")
+            : [];
+          if (validCustom.length > 0 && !localStorage.getItem(STORAGE_KEY_OFFERS)) {
+            localStorage.setItem(STORAGE_KEY_OFFERS, JSON.stringify(validCustom));
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
+
     const raw = localStorage.getItem(STORAGE_KEY_OFFERS);
     if (!raw) {
       return [];
     }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (Array.isArray(parsed)) {
+      // Always exclude demo offers
+      return parsed.filter((o) => o && o.id !== "offer-1" && o.id !== "offer-2");
+    }
+    return [];
   } catch (e) {
     console.error("Failed to load offers from localStorage:", e);
     return [];
@@ -36,7 +63,8 @@ export function getStoredOffers(): Offer[] {
 export function storeOffers(offers: Offer[]): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(STORAGE_KEY_OFFERS, JSON.stringify(offers));
+    const clean = offers.filter((o) => o && o.id !== "offer-1" && o.id !== "offer-2");
+    localStorage.setItem(STORAGE_KEY_OFFERS, JSON.stringify(clean));
     // Dispatch custom event for cross-component reactive updates
     window.dispatchEvent(new Event("cafe7_offers_updated"));
   } catch (e) {
@@ -44,25 +72,40 @@ export function storeOffers(offers: Offer[]): void {
   }
 }
 
-// Fetch offers from server API and safely synchronize with localStorage
+// Fetch offers from server API and safely synchronize across all browsers
 export async function fetchOffersFromServer(): Promise<Offer[]> {
   const local = getStoredOffers();
 
   try {
     const res = await fetch("/api/offers", {
       cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+      },
     });
+
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data)) {
-        if (data.length > 0) {
-          // Server has active offers: update local store & return
-          storeOffers(data);
-          return data;
+        const cleanServer = data.filter(
+          (o: any) => o && o.id !== "offer-1" && o.id !== "offer-2"
+        );
+
+        if (cleanServer.length > 0) {
+          // Server has active offers: Edge, Phone, and all browsers receive them
+          storeOffers(cleanServer);
+          return cleanServer;
         } else if (local.length > 0) {
-          // Server was empty but local has active uploaded offers: sync local TO server so it is never lost!
+          // Chrome has the user's newly uploaded offer, but server was empty:
+          // Sync Chrome's offer TO the server immediately so Phone and Edge get it too!
           saveAllOffersToServer(local).catch(() => {});
+          storeOffers(local);
           return local;
+        } else {
+          // Truly empty: show "No Offer Available"
+          storeOffers([]);
+          return [];
         }
       }
     }
@@ -76,10 +119,11 @@ export async function fetchOffersFromServer(): Promise<Offer[]> {
 // Save all offers to server (batch sync)
 export async function saveAllOffersToServer(offers: Offer[]): Promise<void> {
   try {
+    const clean = offers.filter((o) => o && o.id !== "offer-1" && o.id !== "offer-2");
     await fetch("/api/offers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ offers }),
+      body: JSON.stringify({ offers: clean }),
     });
   } catch (err) {
     console.warn("Batch save to server failed:", err);
@@ -90,8 +134,8 @@ export async function saveAllOffersToServer(offers: Offer[]): Promise<void> {
 export async function saveOfferToServer(offer: Offer): Promise<Offer[]> {
   const current = getStoredOffers();
   const updated = [offer, ...current.filter((o) => o.id !== offer.id)];
-  
-  // 1. Immediately save to local storage so it NEVER disappears
+
+  // 1. Immediately save to local storage
   storeOffers(updated);
 
   // 2. Sync to server API in background

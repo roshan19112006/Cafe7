@@ -49,6 +49,14 @@ export default function OffersPage() {
   };
 
   useEffect(() => {
+    // Instant render from local cache if present
+    const cached = getStoredOffers();
+    if (cached.length > 0) {
+      setOffers(cached);
+      setIsLoaded(true);
+    }
+
+    // Fetch and sync latest from server
     refreshOffers();
 
     const handleUpdate = () => {
