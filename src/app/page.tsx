@@ -22,8 +22,10 @@ import {
   UtensilsCrossed,
   BadgeCheck,
   MessageCircleMore,
-  Eye
+  Eye,
+  Lock
 } from "lucide-react";
+import AdminManager from "@/components/AdminManager";
 
 interface CartItem {
   item: MenuItem;
@@ -38,6 +40,7 @@ export default function Home() {
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
   const [activeMenuCard, setActiveMenuCard] = useState<"menu1" | null>(null);
   const [selectedPreviewItem, setSelectedPreviewItem] = useState<MenuItem | null>(null);
+  const [isAdminOpen, setIsAdminOpen] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const triggerToast = (msg: string) => {
@@ -199,6 +202,15 @@ export default function Home() {
             <a href="#menu-section" className="transition hover:text-[#A97A55]">
               Menu ({totalItemCount})
             </a>
+            <Link
+              href="/offers"
+              className="transition hover:text-[#A97A55] flex items-center space-x-1"
+            >
+              <span>Offers</span>
+              <span className="bg-rose-500 text-white text-[9px] px-1.5 py-0.2 rounded-full font-bold uppercase animate-pulse">
+                Hot
+              </span>
+            </Link>
             <a href="#about-section" className="transition hover:text-[#A97A55]">
               About
             </a>
@@ -926,6 +938,9 @@ export default function Home() {
               <a className="hover:text-[#A97A55]" href="#menu-section">
                 Menu ({totalItemCount})
               </a>
+              <Link className="hover:text-[#A97A55] font-semibold text-[#A97A55]" href="/offers">
+                Offers & Specials
+              </Link>
               <a className="hover:text-[#A97A55]" href="#about-section">
                 About
               </a>
@@ -976,10 +991,29 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="border-t border-[#E8D8C6] px-4 py-6 text-center text-sm text-[#3B312C] sm:px-6 lg:px-8">
-          © {new Date().getFullYear()} Cafe 7. All rights reserved.
+        <div className="border-t border-[#E8D8C6] px-4 py-5 text-center text-xs text-[#3B312C] sm:px-6 lg:px-8 flex items-center justify-between">
+          <span>© {new Date().getFullYear()} Cafe 7. All rights reserved.</span>
+
+          {/* Discreet Admin Login Trigger at down end of page */}
+          <button
+            onClick={() => setIsAdminOpen(true)}
+            className="p-1.5 rounded-lg text-stone-300 hover:text-stone-600 hover:bg-stone-100 transition cursor-pointer flex items-center space-x-1"
+            title="Staff Admin Access"
+            aria-label="Staff Admin Login"
+          >
+            <Lock className="w-3.5 h-3.5" />
+            <span className="text-[10px] hidden sm:inline opacity-30 hover:opacity-100">
+              Admin
+            </span>
+          </button>
         </div>
       </footer>
+
+      {/* Admin Manager Modal */}
+      <AdminManager
+        isOpen={isAdminOpen}
+        onClose={() => setIsAdminOpen(false)}
+      />
     </div>
   );
 }
