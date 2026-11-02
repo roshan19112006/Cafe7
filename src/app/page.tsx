@@ -345,6 +345,21 @@ export default function Home() {
                 <span>Cart ({cartItemCount})</span>
               </button>
             </div>
+
+            {/* Mobile Drawer Admin Link */}
+            <div className="pt-2 border-t border-[#E8D8C6]/70 flex items-center justify-between text-xs text-stone-500">
+              <span className="text-[11px]">Staff Management</span>
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setIsAdminOpen(true);
+                }}
+                className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-stone-200/70 hover:bg-stone-200 text-[#2F2622] text-xs font-semibold cursor-pointer transition"
+              >
+                <Lock className="w-3.5 h-3.5 text-[#A97A55]" />
+                <span>Admin Login</span>
+              </button>
+            </div>
           </div>
         )}
       </header>
@@ -1096,19 +1111,19 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="border-t border-[#E8D8C6] px-4 py-5 text-center text-xs text-[#3B312C] sm:px-6 lg:px-8 flex items-center justify-between">
+        <div className="border-t border-[#E8D8C6] px-4 py-5 pb-28 md:pb-5 text-xs text-[#3B312C] sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
           <span>© {new Date().getFullYear()} Cafe 7. All rights reserved.</span>
 
           {/* Discreet Admin Login Trigger at down end of page */}
           <button
             onClick={() => setIsAdminOpen(true)}
-            className="p-1.5 rounded-lg text-stone-300 hover:text-stone-600 hover:bg-stone-100 transition cursor-pointer flex items-center space-x-1"
+            className="px-3.5 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 border border-stone-300 text-[#2F2622] transition cursor-pointer flex items-center space-x-1.5 shadow-xs"
             title="Staff Admin Access"
             aria-label="Staff Admin Login"
           >
-            <Lock className="w-3.5 h-3.5" />
-            <span className="text-[10px] hidden sm:inline opacity-30 hover:opacity-100">
-              Admin
+            <Lock className="w-3.5 h-3.5 text-[#A97A55]" />
+            <span className="text-xs font-semibold text-stone-800">
+              Admin Login
             </span>
           </button>
         </div>
@@ -1117,7 +1132,7 @@ export default function Home() {
       {/* Mobile Floating Bottom Bar for Quick 1-Tap Navigation */}
       <nav
         aria-label="Mobile quick navigation"
-        className="md:hidden fixed bottom-3 left-4 right-4 z-40 bg-[#2F2622]/95 backdrop-blur-md rounded-full border border-white/10 px-5 py-2.5 shadow-2xl flex items-center justify-around text-white"
+        className="md:hidden fixed bottom-3 left-3 right-3 z-40 bg-[#2F2622]/95 backdrop-blur-md rounded-full border border-white/10 px-4 py-2.5 shadow-2xl flex items-center justify-around text-white"
       >
         <Link href="/" className="flex flex-col items-center text-[10px] text-stone-300 hover:text-white transition">
           <span className="text-base">🏠</span>
@@ -1145,6 +1160,15 @@ export default function Home() {
             )}
           </div>
           <span className="mt-0.5">Order</span>
+        </button>
+        <button
+          onClick={() => setIsAdminOpen(true)}
+          className="flex flex-col items-center text-[10px] text-stone-300 hover:text-white transition cursor-pointer"
+          title="Admin Login"
+          aria-label="Admin Login"
+        >
+          <Lock className="w-4 h-4 text-[#C59B76]" />
+          <span className="mt-0.5 text-[9px] text-[#C59B76] font-semibold">Admin</span>
         </button>
       </nav>
 
