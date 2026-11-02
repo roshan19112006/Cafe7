@@ -2,49 +2,91 @@ import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 
+const CLOUD_DB_URL = "https://api.restful-api.dev/objects/ff808181a09d98f701a19cfb2f361157";
 const DATA_FILE = path.join(process.cwd(), "src", "data", "offers.json");
 
-function readOffersFromFile(): any[] {
+// Helper to read from local file fallback
+function readLocalFallback(): any[] {
   try {
-    if (!fs.existsSync(DATA_FILE)) {
-      const dir = path.dirname(DATA_FILE);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-      fs.writeFileSync(DATA_FILE, "[]", "utf-8");
-      return [];
+    if (fs.existsSync(DATA_FILE)) {
+      const data = fs.readFileSync(DATA_FILE, "utf-8");
+      const list = JSON.parse(data || "[]");
+      return Array.isArray(list)
+        ? list.filter((o: any) => o && o.id !== "offer-1" && o.id !== "offer-2")
+        : [];
     }
-    const data = fs.readFileSync(DATA_FILE, "utf-8");
-    const list = JSON.parse(data || "[]");
-    // Ensure old demo offers are never returned
-    return Array.isArray(list)
-      ? list.filter((o: any) => o && o.id !== "offer-1" && o.id !== "offer-2")
-      : [];
-  } catch (err) {
-    console.error("Error reading offers.json:", err);
-    return [];
+  } catch {
+    // fallback
   }
+  return [];
 }
 
-function writeOffersToFile(offers: any[]): boolean {
+// Helper to write to local file fallback
+function writeLocalFallback(offers: any[]) {
   try {
     const dir = path.dirname(DATA_FILE);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    // Clean out demo offers before saving
-    const cleaned = offers.filter((o: any) => o && o.id !== "offer-1" && o.id !== "offer-2");
-    fs.writeFileSync(DATA_FILE, JSON.stringify(cleaned, null, 2), "utf-8");
-    return true;
-  } catch (err) {
-    console.error("Error writing offers.json:", err);
-    return false;
+    const clean = offers.filter((o: any) => o && o.id !== "offer-1" && o.id !== "offer-2");
+    fs.writeFileSync(DATA_FILE, JSON.stringify(clean, null, 2), "utf-8");
+  } catch {
+    // ignore on readonly filesystem like Vercel
   }
 }
 
-// GET /api/offers - Always fresh, no cache
+// Read offers from Cloud DB with local fallback
+async function getCloudOffers(): Promise<any[]> {
+  try {
+    const res = await fetch(CLOUD_DB_URL, {
+      cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache",
+      },
+    });
+    if (res.ok) {
+      const json = await res.json();
+      const list = json?.data?.offers;
+      if (Array.isArray(list)) {
+        return list.filter((o: any) => o && o.id !== "offer-1" && o.id !== "offer-2");
+      }
+    }
+  } catch (err) {
+    console.warn("Could not read from cloud DB, trying local fallback:", err);
+  }
+  return readLocalFallback();
+}
+
+// Save offers to Cloud DB with local fallback
+async function saveCloudOffers(offers: any[]): Promise<any[]> {
+  const clean = offers.filter((o: any) => o && o.id !== "offer-1" && o.id !== "offer-2");
+  writeLocalFallback(clean);
+
+  try {
+    const res = await fetch(CLOUD_DB_URL, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "cafe7_database",
+        data: { offers: clean },
+      }),
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (Array.isArray(json?.data?.offers)) {
+        return json.data.offers;
+      }
+    }
+  } catch (err) {
+    console.error("Failed to write to cloud DB:", err);
+  }
+
+  return clean;
+}
+
+// GET /api/offers
 export async function GET() {
-  const offers = readOffersFromFile();
+  const offers = await getCloudOffers();
   return NextResponse.json(offers, {
     headers: {
       "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
@@ -54,14 +96,14 @@ export async function GET() {
   });
 }
 
-// POST /api/offers - Add new offer or sync all offers
+// POST /api/offers
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
     if (body.offers && Array.isArray(body.offers)) {
-      writeOffersToFile(body.offers);
-      return NextResponse.json({ success: true, offers: readOffersFromFile() });
+      const saved = await saveCloudOffers(body.offers);
+      return NextResponse.json({ success: true, offers: saved });
     }
 
     if (!body.title || !body.image) {
@@ -71,7 +113,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const current = readOffersFromFile();
+    const current = await getCloudOffers();
     const newOffer = {
       id: body.id || `offer-${Date.now()}`,
       title: body.title,
@@ -83,9 +125,9 @@ export async function POST(req: NextRequest) {
     };
 
     const updated = [newOffer, ...current.filter((o) => o.id !== newOffer.id)];
-    writeOffersToFile(updated);
+    const saved = await saveCloudOffers(updated);
 
-    return NextResponse.json({ success: true, offer: newOffer, offers: updated });
+    return NextResponse.json({ success: true, offer: newOffer, offers: saved });
   } catch (err: any) {
     console.error("POST /api/offers error:", err);
     return NextResponse.json(
@@ -95,7 +137,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// DELETE /api/offers - Delete by ID or delete all
+// DELETE /api/offers
 export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -119,12 +161,10 @@ export async function DELETE(req: NextRequest) {
 
     let updated: any[] = [];
     if (id === "ALL") {
-      updated = [];
-      writeOffersToFile([]);
+      updated = await saveCloudOffers([]);
     } else {
-      const current = readOffersFromFile();
-      updated = current.filter((o) => o.id !== id);
-      writeOffersToFile(updated);
+      const current = await getCloudOffers();
+      updated = await saveCloudOffers(current.filter((o) => o.id !== id));
     }
 
     return NextResponse.json({

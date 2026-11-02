@@ -8,12 +8,14 @@ export interface Offer {
   createdAt: string;
 }
 
-export const STORAGE_KEY_OFFERS = "cafe7_active_offers_v3";
+export const STORAGE_KEY_OFFERS = "cafe7_active_offers_v4";
 export const LEGACY_STORAGE_KEYS = [
   "cafe7_promotional_offers_v1",
   "cafe7_promotional_offers_v2",
+  "cafe7_active_offers_v3",
 ];
 export const STORAGE_KEY_AUTH = "cafe7_admin_auth_v1";
+export const CLOUD_DIRECT_URL = "https://api.restful-api.dev/objects/ff808181a09d98f701a19cfb2f361157";
 
 export const DEFAULT_OFFERS: Offer[] = [];
 
@@ -110,7 +112,25 @@ export async function fetchOffersFromServer(): Promise<Offer[]> {
       }
     }
   } catch (err) {
-    console.warn("Could not fetch offers from server API, using local storage:", err);
+    console.warn("Could not fetch offers from /api/offers, trying direct cloud fallback:", err);
+  }
+
+  // Direct cloud fallback if /api/offers was unavailable
+  try {
+    const directRes = await fetch(CLOUD_DIRECT_URL, { cache: "no-store" });
+    if (directRes.ok) {
+      const json = await directRes.json();
+      const list = json?.data?.offers;
+      if (Array.isArray(list)) {
+        const clean = list.filter((o: any) => o && o.id !== "offer-1" && o.id !== "offer-2");
+        if (clean.length > 0) {
+          storeOffers(clean);
+          return clean;
+        }
+      }
+    }
+  } catch {
+    // fallback
   }
 
   return local;
@@ -118,15 +138,27 @@ export async function fetchOffersFromServer(): Promise<Offer[]> {
 
 // Save all offers to server (batch sync)
 export async function saveAllOffersToServer(offers: Offer[]): Promise<void> {
+  const clean = offers.filter((o) => o && o.id !== "offer-1" && o.id !== "offer-2");
   try {
-    const clean = offers.filter((o) => o && o.id !== "offer-1" && o.id !== "offer-2");
     await fetch("/api/offers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ offers: clean }),
     });
   } catch (err) {
-    console.warn("Batch save to server failed:", err);
+    console.warn("Batch save to /api/offers failed, trying direct cloud save:", err);
+    try {
+      await fetch(CLOUD_DIRECT_URL, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "cafe7_database",
+          data: { offers: clean },
+        }),
+      });
+    } catch {
+      // fallback
+    }
   }
 }
 
@@ -138,7 +170,7 @@ export async function saveOfferToServer(offer: Offer): Promise<Offer[]> {
   // 1. Immediately save to local storage
   storeOffers(updated);
 
-  // 2. Sync to server API in background
+  // 2. Sync to server API and cloud
   try {
     await fetch("/api/offers", {
       method: "POST",
@@ -146,7 +178,8 @@ export async function saveOfferToServer(offer: Offer): Promise<Offer[]> {
       body: JSON.stringify(offer),
     });
   } catch (err) {
-    console.warn("Could not sync offer to server API:", err);
+    console.warn("Could not sync offer to /api/offers:", err);
+    saveAllOffersToServer(updated).catch(() => {});
   }
 
   return updated;
@@ -166,7 +199,8 @@ export async function deleteOfferFromServer(id: string): Promise<Offer[]> {
       method: "DELETE",
     });
   } catch (err) {
-    console.warn("Could not sync delete to server API:", err);
+    console.warn("Could not sync delete to /api/offers:", err);
+    saveAllOffersToServer(updated).catch(() => {});
   }
 
   return updated;
@@ -181,7 +215,8 @@ export async function deleteAllOffersFromServer(): Promise<Offer[]> {
       method: "DELETE",
     });
   } catch (err) {
-    console.warn("Could not sync delete all to server API:", err);
+    console.warn("Could not sync delete all to /api/offers:", err);
+    saveAllOffersToServer([]).catch(() => {});
   }
 
   return [];
