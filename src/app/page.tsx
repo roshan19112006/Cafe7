@@ -109,6 +109,13 @@ export default function Home() {
       if (activeTab === "chicken-wings") return cat.id === "chicken-wings";
       if (activeTab === "chicken-tenders") return cat.id === "chicken-tenders";
       if (activeTab === "coffee") return cat.id === "hot-cold-coffee";
+      if (activeTab === "iced-tea") return cat.id === "iced-tea";
+      if (activeTab === "milk-shakes") return cat.id === "signature-milk-shakes";
+      if (activeTab === "lemonades") return cat.id === "lemonades";
+      if (activeTab === "refreshers") return cat.id === "refreshers";
+      if (activeTab === "mojitos") return cat.id === "mojitos";
+      if (activeTab === "beverages") return cat.id === "beverages";
+      if (activeTab === "combos") return cat.id === "combos";
 
       return cat.id === activeTab;
     }).map((cat) => {
@@ -145,6 +152,24 @@ export default function Home() {
       (c) => c.id === "fries" || c.id === "loaded-fries"
     ).reduce((sum, c) => sum + c.items.length, 0);
   }, []);
+
+  const categoryTabs = useMemo(() => [
+    { id: "all", label: "View All Menu", count: totalItemCount },
+    { id: "burgers", label: "🍔 Burgers", count: burgerCount },
+    { id: "wraps", label: "🌯 Wraps", count: MENU_CATEGORIES.find(c => c.id === "wraps")?.items.length || 0 },
+    { id: "appetizers", label: "🥟 Appetizers", count: MENU_CATEGORIES.find(c => c.id === "appetizers")?.items.length || 0 },
+    { id: "chicken-wings", label: "🍗 Wings", count: MENU_CATEGORIES.find(c => c.id === "chicken-wings")?.items.length || 0 },
+    { id: "chicken-tenders", label: "🍗 Crispy Tenders", count: MENU_CATEGORIES.find(c => c.id === "chicken-tenders")?.items.length || 0 },
+    { id: "fries", label: "🍟 Fries & Loaded", count: friesCount },
+    { id: "coffee", label: "☕ Hot & Cold Coffee", count: MENU_CATEGORIES.find(c => c.id === "hot-cold-coffee")?.items.length || 0 },
+    { id: "iced-tea", label: "🧊 Iced Tea", count: MENU_CATEGORIES.find(c => c.id === "iced-tea")?.items.length || 0 },
+    { id: "milk-shakes", label: "🥤 Milk Shakes", count: MENU_CATEGORIES.find(c => c.id === "signature-milk-shakes")?.items.length || 0 },
+    { id: "lemonades", label: "🍋 Lemonade", count: MENU_CATEGORIES.find(c => c.id === "lemonades")?.items.length || 0 },
+    { id: "mojitos", label: "🍹 Mojitos", count: MENU_CATEGORIES.find(c => c.id === "mojitos")?.items.length || 0 },
+    { id: "refreshers", label: "🍸 Refreshers", count: MENU_CATEGORIES.find(c => c.id === "refreshers")?.items.length || 0 },
+    { id: "beverages", label: "🥤 Beverages", count: MENU_CATEGORIES.find(c => c.id === "beverages")?.items.length || 0 },
+    { id: "combos", label: "🍱 Combos", count: MENU_CATEGORIES.find(c => c.id === "combos")?.items.length || 0 }
+  ], [totalItemCount, burgerCount, friesCount]);
 
   return (
     <div className="min-h-full bg-[#FBF8F4] text-[#3B312C] font-sans">
@@ -328,107 +353,59 @@ export default function Home() {
 
           {/* Interactive Category Selector Tabs */}
           <div className="mt-6 flex items-center gap-2 overflow-x-auto pb-3 scrollbar-none">
-            {/* All Items */}
-            <button
-              onClick={() => setActiveTab("all")}
-              className={`whitespace-nowrap px-4 py-2.5 rounded-full text-xs font-semibold tracking-wide transition cursor-pointer flex items-center space-x-1.5 ${
-                activeTab === "all"
-                  ? "bg-[#2F2622] text-white shadow-md scale-105"
-                  : "bg-white text-[#3B312C] border border-[#E8D8C6] hover:bg-[#F4EEE7]"
-              }`}
-            >
-              <span>View All Menu</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/10">
-                {totalItemCount}
+            {categoryTabs.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`whitespace-nowrap px-4 py-2.5 rounded-full text-xs font-semibold tracking-wide transition cursor-pointer flex items-center space-x-1.5 ${
+                    isActive
+                      ? "bg-[#2F2622] text-white shadow-md scale-105"
+                      : "bg-white text-[#3B312C] border border-[#E8D8C6] hover:bg-[#F4EEE7]"
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isActive ? "bg-white/20 text-white" : "bg-black/10 text-[#3B312C]"}`}>
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Combos & Extras Quick Banner */}
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+            <div className="bg-[#FAF3EA] border border-[#E8D8C6] rounded-2xl p-3.5 flex items-center justify-between">
+              <div>
+                <span className="font-bold text-[#2F2622] uppercase tracking-wider text-[11px] block">
+                  🍱 Value Combo Deals
+                </span>
+                <span className="text-[#3B312C] text-[11px] mt-0.5 block">
+                  Fries + Soft Drink ₹159 • Fries + Refresher ₹199 • Fries + Lemonade ₹209
+                </span>
+              </div>
+              <button
+                onClick={() => setActiveTab("combos")}
+                className="ml-3 shrink-0 px-3 py-1.5 rounded-full bg-[#A97A55] text-white font-semibold text-[11px] hover:bg-[#8e643f] transition cursor-pointer"
+              >
+                View Combos
+              </button>
+            </div>
+
+            <div className="bg-[#FAF3EA] border border-[#E8D8C6] rounded-2xl p-3.5 flex items-center justify-between">
+              <div>
+                <span className="font-bold text-[#2F2622] uppercase tracking-wider text-[11px] block">
+                  🧀 Delicious Extras
+                </span>
+                <span className="text-[#3B312C] text-[11px] mt-0.5 block">
+                  Extra Cheese (+₹30) • Extra Dipping Sauce (+₹30)
+                </span>
+              </div>
+              <span className="text-[10px] px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-semibold border border-emerald-200">
+                Available with any item
               </span>
-            </button>
-
-            {/* Burgers */}
-            <button
-              onClick={() => setActiveTab("burgers")}
-              className={`whitespace-nowrap px-4 py-2.5 rounded-full text-xs font-semibold tracking-wide transition cursor-pointer flex items-center space-x-1.5 ${
-                activeTab === "burgers"
-                  ? "bg-[#A97A55] text-white shadow-md scale-105"
-                  : "bg-white text-[#3B312C] border border-[#E8D8C6] hover:bg-[#F4EEE7]"
-              }`}
-            >
-              <span>🍔 Burgers</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/10">
-                {burgerCount}
-              </span>
-            </button>
-
-            {/* Wraps */}
-            <button
-              onClick={() => setActiveTab("wraps")}
-              className={`whitespace-nowrap px-4 py-2.5 rounded-full text-xs font-semibold tracking-wide transition cursor-pointer flex items-center space-x-1.5 ${
-                activeTab === "wraps"
-                  ? "bg-[#A97A55] text-white shadow-md scale-105"
-                  : "bg-white text-[#3B312C] border border-[#E8D8C6] hover:bg-[#F4EEE7]"
-              }`}
-            >
-              <span>🌯 Wraps (5)</span>
-            </button>
-
-            {/* Appetizers */}
-            <button
-              onClick={() => setActiveTab("appetizers")}
-              className={`whitespace-nowrap px-4 py-2.5 rounded-full text-xs font-semibold tracking-wide transition cursor-pointer flex items-center space-x-1.5 ${
-                activeTab === "appetizers"
-                  ? "bg-[#A97A55] text-white shadow-md scale-105"
-                  : "bg-white text-[#3B312C] border border-[#E8D8C6] hover:bg-[#F4EEE7]"
-              }`}
-            >
-              <span>🥟 Appetizers (5)</span>
-            </button>
-
-            {/* Chicken Wings */}
-            <button
-              onClick={() => setActiveTab("chicken-wings")}
-              className={`whitespace-nowrap px-4 py-2.5 rounded-full text-xs font-semibold tracking-wide transition cursor-pointer flex items-center space-x-1.5 ${
-                activeTab === "chicken-wings"
-                  ? "bg-[#A97A55] text-white shadow-md scale-105"
-                  : "bg-white text-[#3B312C] border border-[#E8D8C6] hover:bg-[#F4EEE7]"
-              }`}
-            >
-              <span>🍗 Chicken Wings (4)</span>
-            </button>
-
-            {/* Chicken Tenders */}
-            <button
-              onClick={() => setActiveTab("chicken-tenders")}
-              className={`whitespace-nowrap px-4 py-2.5 rounded-full text-xs font-semibold tracking-wide transition cursor-pointer flex items-center space-x-1.5 ${
-                activeTab === "chicken-tenders"
-                  ? "bg-[#A97A55] text-white shadow-md scale-105"
-                  : "bg-white text-[#3B312C] border border-[#E8D8C6] hover:bg-[#F4EEE7]"
-              }`}
-            >
-              <span>🍗 Crispy Tenders (7)</span>
-            </button>
-
-            {/* Fries & Loaded */}
-            <button
-              onClick={() => setActiveTab("fries")}
-              className={`whitespace-nowrap px-4 py-2.5 rounded-full text-xs font-semibold tracking-wide transition cursor-pointer flex items-center space-x-1.5 ${
-                activeTab === "fries"
-                  ? "bg-[#A97A55] text-white shadow-md scale-105"
-                  : "bg-white text-[#3B312C] border border-[#E8D8C6] hover:bg-[#F4EEE7]"
-              }`}
-            >
-              <span>🍟 Fries & Loaded ({friesCount})</span>
-            </button>
-
-            {/* Coffee */}
-            <button
-              onClick={() => setActiveTab("coffee")}
-              className={`whitespace-nowrap px-4 py-2.5 rounded-full text-xs font-semibold tracking-wide transition cursor-pointer flex items-center space-x-1.5 ${
-                activeTab === "coffee"
-                  ? "bg-[#A97A55] text-white shadow-md scale-105"
-                  : "bg-white text-[#3B312C] border border-[#E8D8C6] hover:bg-[#F4EEE7]"
-              }`}
-            >
-              <span>☕ Hot & Cold Coffee (11)</span>
-            </button>
+            </div>
           </div>
 
           {/* Rendered Items Grid with Images */}
@@ -706,14 +683,14 @@ export default function Home() {
                   Official Café 7 Main Menu Card
                 </h3>
                 <p className="text-xs text-[#3B312C]">
-                  Burgers • Fries • Coffee • Wings • Tenders • Wraps
+                  Burgers • Fries • Coffee • Shakes • Mojitos • Refreshers • Wraps • Combos
                 </p>
               </div>
             </div>
 
             <div className="relative w-full h-[70vh] rounded-2xl overflow-hidden bg-stone-900 border border-stone-200">
               <Image
-                src="/images/Menu 1.jpeg"
+                src="/images/menu-card-new.png"
                 alt="Café 7 Print Card Scan"
                 fill
                 className="object-contain"
