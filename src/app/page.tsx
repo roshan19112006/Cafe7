@@ -87,7 +87,7 @@ export default function Home() {
     });
     text += `\n*Subtotal: ₹${cartTotal}* (taxes extra)\n`;
     text += `Please confirm my order and share preparation time. Thank you!`;
-    return `https://wa.me/919677419178?text=${encodeURIComponent(text)}`;
+    return `https://wa.me/917200699989?text=${encodeURIComponent(text)}`;
   };
 
   // Grouped categories for filter tabs
@@ -745,8 +745,8 @@ export default function Home() {
                   <Phone className="w-5 h-5 text-[#A97A55] shrink-0 mt-0.5" />
                   <div>
                     <p className="font-semibold text-[#2F2622]">Phone</p>
-                    <a href="tel:+919677419178" className="mt-1 block text-[#A97A55] font-semibold">
-                      +91 9677419178
+                    <a href="tel:+917200699989" className="mt-1 block text-[#A97A55] font-semibold">
+                      +91 7200699989
                     </a>
                   </div>
                 </div>
@@ -776,7 +776,7 @@ export default function Home() {
                 <a
                   target="_blank"
                   rel="noreferrer"
-                  href="https://wa.me/919677419178"
+                  href="https://wa.me/917200699989"
                   className="rounded-full border border-[#A97A55] px-6 py-2.5 text-xs font-semibold text-[#A97A55] hover:bg-white transition"
                 >
                   Chat on WhatsApp
@@ -1021,7 +1021,7 @@ export default function Home() {
                   rel="noopener noreferrer"
                   className="w-full py-3.5 rounded-full bg-[#A97A55] hover:bg-[#8e643f] text-white font-semibold text-xs flex items-center justify-center space-x-2 shadow-sm transition cursor-pointer"
                 >
-                  <span>Send Order to WhatsApp (+91 9677419178)</span>
+                  <span>Send Order to WhatsApp (+91 7200699989)</span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
 
@@ -1092,11 +1092,11 @@ export default function Home() {
                 <span>Facebook</span>
               </a>
               <a
-                href="tel:+919677419178"
+                href="tel:+917200699989"
                 className="inline-flex items-center gap-2 hover:text-[#A97A55]"
               >
                 <Phone className="w-4 h-4 text-[#A97A55]" />
-                <span>+91 9677419178</span>
+                <span>+91 7200699989</span>
               </a>
               <a
                 href="https://maps.app.goo.gl/2rdQ6sEXDj48jW5s9"

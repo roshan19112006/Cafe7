@@ -56,7 +56,7 @@ export default function OffersPage() {
 
   const getWhatsAppOfferUrl = (offerTitle: string) => {
     const text = `*Hi Cafe 7!*\n\nI would like to order and claim the special offer: *${offerTitle}*.\nCould you please share availability and total price? Thank you!`;
-    return `https://wa.me/919677419178?text=${encodeURIComponent(text)}`;
+    return `https://wa.me/917200699989?text=${encodeURIComponent(text)}`;
   };
 
   return (
@@ -419,9 +419,9 @@ export default function OffersPage() {
           <div>
             <h4 className="text-xs font-bold uppercase tracking-wider text-[#2F2622]">Connect</h4>
             <div className="mt-3 space-y-2 text-xs text-[#3B312C]">
-              <a href="tel:+919677419178" className="flex items-center space-x-2 hover:text-[#A97A55]">
+              <a href="tel:+917200699989" className="flex items-center space-x-2 hover:text-[#A97A55]">
                 <Phone className="w-3.5 h-3.5 text-[#A97A55]" />
-                <span>+91 9677419178</span>
+                <span>+91 7200699989</span>
               </a>
               <a
                 href="https://maps.app.goo.gl/2rdQ6sEXDj48jW5s9"
@@ -475,7 +475,7 @@ export default function OffersPage() {
           <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-rose-500 animate-ping" />
         </Link>
         <a
-          href="https://wa.me/919677419178?text=Hi%20Cafe%207!%20I%20would%20like%20to%20order."
+          href="https://wa.me/917200699989?text=Hi%20Cafe%207!%20I%20would%20like%20to%20order."
           target="_blank"
           rel="noreferrer"
           className="flex flex-col items-center text-[10px] text-emerald-400 hover:text-white transition"

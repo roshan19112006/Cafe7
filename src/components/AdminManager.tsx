@@ -263,10 +263,6 @@ export default function AdminManager({ isOpen, onClose, onOffersChange }: AdminM
                 className="w-full bg-[#FAF5EE] border border-[#E8D8C6] rounded-xl px-4 py-2.5 text-sm text-[#2F2622] focus:outline-none focus:border-[#A97A55]"
                 required
               />
-              <p className="text-[11px] text-stone-400 mt-1">
-                Default: <span className="font-mono text-stone-600">admin</span> /{" "}
-                <span className="font-mono text-stone-600">cafe7admin</span>
-              </p>
             </div>
 
             <button
