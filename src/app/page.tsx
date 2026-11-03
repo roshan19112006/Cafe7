@@ -1,12 +1,19 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
   MENU_CATEGORIES,
   MenuItem
 } from "@/data/menu";
+import {
+  Offer,
+  getStoredOffers,
+  fetchOffersFromServer,
+  deleteOfferFromServer,
+  STORAGE_KEY_AUTH,
+} from "@/data/offers";
 import {
   Search,
   ShoppingBag,
@@ -24,7 +31,14 @@ import {
   MessageCircleMore,
   Eye,
   Lock,
-  Menu as MenuIcon
+  Menu as MenuIcon,
+  Sparkles,
+  Tag,
+  Clock,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  MessageCircle
 } from "lucide-react";
 import AdminManager from "@/components/AdminManager";
 
@@ -44,6 +58,14 @@ export default function Home() {
   const [selectedPreviewItem, setSelectedPreviewItem] = useState<MenuItem | null>(null);
   const [isAdminOpen, setIsAdminOpen] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Offers integration state
+  const [offers, setOffers] = useState<Offer[]>([]);
+  const [activeOfferIndex, setActiveOfferIndex] = useState<number>(0);
+  const [selectedOfferPreview, setSelectedOfferPreview] = useState<Offer | null>(null);
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(false);
+  const [isOffersLoaded, setIsOffersLoaded] = useState<boolean>(false);
+  const [isOfferPaused, setIsOfferPaused] = useState<boolean>(false);
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
@@ -89,6 +111,62 @@ export default function Home() {
     text += `Please confirm my order and share preparation time. Thank you!`;
     return `https://wa.me/917200699989?text=${encodeURIComponent(text)}`;
   };
+
+  const getWhatsAppOfferUrl = (offerTitle: string) => {
+    const text = `*Hi Cafe 7!*\n\nI would like to order and claim the special offer: *${offerTitle}*.\nCould you please share availability and total price? Thank you!`;
+    return `https://wa.me/917200699989?text=${encodeURIComponent(text)}`;
+  };
+
+  const refreshOffers = async () => {
+    if (typeof window !== "undefined") {
+      setIsAdminLoggedIn(localStorage.getItem(STORAGE_KEY_AUTH) === "true");
+    }
+    const loaded = await fetchOffersFromServer();
+    setOffers(loaded);
+    setIsOffersLoaded(true);
+  };
+
+  useEffect(() => {
+    // 1. Instant load from local cache if present
+    const cached = getStoredOffers();
+    if (cached.length > 0) {
+      setOffers(cached);
+      setIsOffersLoaded(true);
+    }
+    if (typeof window !== "undefined") {
+      setIsAdminLoggedIn(localStorage.getItem(STORAGE_KEY_AUTH) === "true");
+    }
+
+    // 2. Fetch fresh synchronized offers from server
+    refreshOffers();
+
+    // 3. React to updates from AdminManager and other tabs
+    const handleUpdate = () => {
+      if (typeof window !== "undefined") {
+        setIsAdminLoggedIn(localStorage.getItem(STORAGE_KEY_AUTH) === "true");
+        setOffers(getStoredOffers());
+      }
+    };
+
+    window.addEventListener("cafe7_offers_updated", handleUpdate);
+    window.addEventListener("cafe7_auth_changed", handleUpdate);
+    window.addEventListener("storage", handleUpdate);
+
+    return () => {
+      window.removeEventListener("cafe7_offers_updated", handleUpdate);
+      window.removeEventListener("cafe7_auth_changed", handleUpdate);
+      window.removeEventListener("storage", handleUpdate);
+    };
+  }, []);
+
+  // Auto-slide carousel when multiple offers exist
+  useEffect(() => {
+    if (offers.length <= 1 || isOfferPaused) return;
+    const timer = setInterval(() => {
+      setActiveOfferIndex((prev) => (prev + 1) % offers.length);
+    }, 5500);
+    return () => clearInterval(timer);
+  }, [offers.length, isOfferPaused]);
 
   // Grouped categories for filter tabs
   const displayedCategories = useMemo(() => {
@@ -204,15 +282,21 @@ export default function Home() {
             <a href="#menu-section" className="transition hover:text-[#A97A55]">
               Menu ({totalItemCount})
             </a>
-            <Link
-              href="/offers"
+            <a
+              href="#offers"
               className="transition hover:text-[#A97A55] flex items-center space-x-1"
             >
               <span>Offers</span>
-              <span className="bg-rose-500 text-white text-[9px] px-1.5 py-0.2 rounded-full font-bold uppercase animate-pulse">
-                Hot
-              </span>
-            </Link>
+              {offers.length > 0 ? (
+                <span className="bg-rose-500 text-white text-[9px] px-1.5 py-0.2 rounded-full font-bold uppercase animate-pulse">
+                  {offers.length} Hot
+                </span>
+              ) : (
+                <span className="bg-[#A97A55]/15 text-[#A97A55] text-[9px] px-1.5 py-0.2 rounded-full font-bold uppercase">
+                  Hot
+                </span>
+              )}
+            </a>
             <a href="#about-section" className="transition hover:text-[#A97A55]">
               About
             </a>
@@ -287,8 +371,8 @@ export default function Home() {
               </span>
             </a>
 
-            <Link
-              href="/offers"
+            <a
+              href="#offers"
               onClick={() => setIsMobileMenuOpen(false)}
               className="flex items-center justify-between p-3 rounded-2xl bg-[#FAF4ED] border border-[#A97A55]/40 text-sm font-bold text-[#A97A55] hover:bg-[#F4EEE7] transition"
             >
@@ -296,10 +380,16 @@ export default function Home() {
                 <span className="text-base">🏷️</span>
                 <span>Special Offers & Deals</span>
               </div>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500 text-white font-bold uppercase animate-pulse">
-                HOT
-              </span>
-            </Link>
+              {offers.length > 0 ? (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500 text-white font-bold uppercase animate-pulse">
+                  {offers.length} HOT
+                </span>
+              ) : (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500 text-white font-bold uppercase">
+                  HOT
+                </span>
+              )}
+            </a>
 
             <a
               href="#about-section"
@@ -408,17 +498,232 @@ export default function Home() {
         </section>
 
         {/* Menu Section with Real Images & Prices */}
-        <section id="menu-section" className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
-          <div className="max-w-2xl">
-            <p className="mb-3 text-sm font-semibold uppercase tracking-[0.35em] text-[#A97A55]">
-              Official 2026 Menu
-            </p>
-            <h2 className="text-3xl font-semibold tracking-tight text-[#2F2622] sm:text-4xl font-serif">
-              Signature Plates & Pours
-            </h2>
-            <p className="mt-4 text-base sm:text-lg text-[#3B312C]">
-              Every dish below is freshly prepared with verified prices and high-resolution photography straight from our kitchen and barista bar.
-            </p>
+        <section id="menu-section" className="mx-auto max-w-7xl px-4 py-16 sm:py-20 sm:px-6 lg:px-8">
+          {/* Header & Offers Section: Positioned Next to the Signature Plates Paragraph & Before the Filter Bar */}
+          <div id="offers" className="scroll-mt-28">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 lg:gap-8">
+              {/* Left: Signature Plates & Pours */}
+              <div className="max-w-xl lg:max-w-md xl:max-w-lg shrink-0">
+                <div className="flex items-center gap-2 mb-3">
+                  <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#A97A55]">
+                    Official 2026 Menu
+                  </p>
+                  {offers.length > 0 && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500 text-white uppercase tracking-wider animate-pulse shadow-xs">
+                      <Sparkles className="w-3 h-3" />
+                      {offers.length} {offers.length === 1 ? "Offer Live" : "Offers Live"}
+                    </span>
+                  )}
+                </div>
+                <h2 className="text-3xl font-semibold tracking-tight text-[#2F2622] sm:text-4xl font-serif">
+                  Signature Plates & Pours
+                </h2>
+                <p className="mt-4 text-base sm:text-lg text-[#3B312C] leading-relaxed">
+                  Every dish below is freshly prepared with verified prices and high-resolution photography straight from our kitchen and barista bar.
+                </p>
+              </div>
+
+              {/* Right: Offers Section (Next to the Signature Plates Para, Before the Filter Row) */}
+              <div className="flex-1 w-full lg:max-w-xl xl:max-w-2xl">
+                {offers.length > 0 ? (
+                  /* Live Offers Card / Slider */
+                  <div
+                    onMouseEnter={() => setIsOfferPaused(true)}
+                    onMouseLeave={() => setIsOfferPaused(false)}
+                    className="flex flex-col"
+                  >
+                    {/* Header bar if multiple offers */}
+                    {offers.length > 1 && (
+                      <div className="flex items-center justify-between mb-2 px-1">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-600 text-[11px] font-bold uppercase tracking-wider">
+                            <Sparkles className="w-3 h-3 text-rose-500" />
+                            Special Deals
+                          </span>
+                          <span className="text-xs text-stone-500 font-medium">
+                            {activeOfferIndex + 1} of {offers.length}
+                          </span>
+                        </div>
+
+                        {/* Navigation Arrows & Dot Indicators */}
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1 mr-1">
+                            {offers.map((_, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => setActiveOfferIndex(idx)}
+                                className={`h-1.5 rounded-full transition-all duration-200 cursor-pointer ${
+                                  idx === activeOfferIndex
+                                    ? "w-4 bg-[#A97A55]"
+                                    : "w-1.5 bg-stone-300 hover:bg-stone-400"
+                                }`}
+                                aria-label={`Go to offer ${idx + 1}`}
+                              />
+                            ))}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setActiveOfferIndex(
+                                (prev) => (prev - 1 + offers.length) % offers.length
+                              )
+                            }
+                            className="p-1 rounded-full bg-white border border-[#E8D8C6] hover:bg-[#FAF4ED] text-[#2F2622] transition cursor-pointer shadow-xs"
+                            aria-label="Previous offer"
+                          >
+                            <ChevronLeft className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setActiveOfferIndex((prev) => (prev + 1) % offers.length)
+                            }
+                            className="p-1 rounded-full bg-white border border-[#E8D8C6] hover:bg-[#FAF4ED] text-[#2F2622] transition cursor-pointer shadow-xs"
+                            aria-label="Next offer"
+                          >
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Current Active Offer Card */}
+                    {(() => {
+                      const cur = offers[activeOfferIndex % offers.length];
+                      if (!cur) return null;
+                      return (
+                        <div className="relative rounded-2xl border border-[#E8D8C6] bg-white p-3.5 sm:p-4 shadow-sm hover:shadow-md transition-all duration-300 group overflow-hidden">
+                          <div className="flex flex-col sm:flex-row gap-3.5 sm:gap-4 items-center">
+                            {/* Poster Thumbnail */}
+                            <div
+                              onClick={() => setSelectedOfferPreview(cur)}
+                              className="relative w-full sm:w-40 h-36 sm:h-32 rounded-xl overflow-hidden bg-stone-100 border border-[#E8D8C6] shrink-0 cursor-zoom-in group/img"
+                            >
+                              <img
+                                src={cur.image}
+                                alt={cur.title}
+                                className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300"
+                              />
+                              {cur.badge && (
+                                <span className="absolute top-2 left-2 z-10 px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-bold uppercase tracking-wider shadow-sm">
+                                  {cur.badge}
+                                </span>
+                              )}
+                              <div className="absolute inset-0 bg-black/35 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1">
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>View Poster</span>
+                              </div>
+                            </div>
+
+                            {/* Offer Details */}
+                            <div className="flex-1 min-w-0 text-left w-full flex flex-col justify-between self-stretch py-0.5">
+                              <div>
+                                <div className="flex items-center justify-between gap-2 mb-1">
+                                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#A97A55] bg-[#FAF4ED] border border-[#E8D8C6] px-2 py-0.5 rounded-full">
+                                    Special Offer
+                                  </span>
+                                  {cur.validTill && (
+                                    <span className="text-[11px] text-stone-500 flex items-center gap-1 shrink-0">
+                                      <Clock className="w-3 h-3 text-[#A97A55]" />
+                                      <span>{cur.validTill}</span>
+                                    </span>
+                                  )}
+                                </div>
+
+                                <h3 className="font-serif text-base sm:text-lg font-bold text-[#2F2622] leading-snug truncate group-hover:text-[#A97A55] transition">
+                                  {cur.title}
+                                </h3>
+                                <p className="text-xs text-[#5C4A3E] mt-1 line-clamp-2 leading-relaxed">
+                                  {cur.description}
+                                </p>
+                              </div>
+
+                              <div className="mt-3 flex items-center gap-2 pt-1">
+                                <a
+                                  href={getWhatsAppOfferUrl(cur.title)}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="px-3.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+                                >
+                                  <MessageCircle className="w-3.5 h-3.5" />
+                                  <span>Claim on WhatsApp</span>
+                                </a>
+
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedOfferPreview(cur)}
+                                  className="px-3 py-1.5 rounded-full bg-[#FAF4ED] hover:bg-[#F4EEE7] text-[#2F2622] text-xs font-semibold border border-[#E8D8C6] transition flex items-center gap-1 cursor-pointer"
+                                >
+                                  <Eye className="w-3.5 h-3.5 text-[#A97A55]" />
+                                  <span>View</span>
+                                </button>
+
+                                {isAdminLoggedIn && (
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      await deleteOfferFromServer(cur.id);
+                                      refreshOffers();
+                                    }}
+                                    className="p-1.5 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 transition ml-auto cursor-pointer"
+                                    title="Delete this offer"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                ) : (
+                  /* Empty State / Daily Specials Promo Banner */
+                  <div className="rounded-2xl border border-[#E8D8C6] bg-gradient-to-br from-[#FAF4ED] via-white to-[#F5ECE1] p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-[#A97A55]/10 border border-[#A97A55]/20 flex items-center justify-center text-[#A97A55] shrink-0">
+                      <Sparkles className="w-6 h-6" />
+                    </div>
+                    <div className="flex-1 text-center sm:text-left min-w-0">
+                      <div className="flex items-center justify-center sm:justify-start gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#A97A55] bg-[#A97A55]/10 px-2.5 py-0.5 rounded-full">
+                          Daily Specials
+                        </span>
+                        <span className="text-xs text-stone-500 font-medium">Kitchen & Barista</span>
+                      </div>
+                      <h4 className="font-serif text-base font-bold text-[#2F2622] mt-1 truncate">
+                        Ask for Today&apos;s Chef Combos & Offers
+                      </h4>
+                      <p className="text-xs text-[#5C4A3E] mt-0.5 line-clamp-2 leading-relaxed">
+                        Seasonal burger treats, group combos & promo deals update regularly. Inquire via WhatsApp or counter!
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <a
+                        href="https://wa.me/917200699989?text=Hi%20Cafe%207!%20Could%20you%20please%20share%20today%27s%20special%20offers%20and%20combos%3F"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-4 py-2 rounded-full bg-[#A97A55] hover:bg-[#8e643f] text-white text-xs font-semibold transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        <span>Inquire Offers</span>
+                      </a>
+                      {isAdminLoggedIn && (
+                        <button
+                          type="button"
+                          onClick={() => setIsAdminOpen(true)}
+                          className="px-3 py-2 rounded-full bg-white border border-[#A97A55]/40 text-[#A97A55] text-xs font-bold hover:bg-[#FAF4ED] transition flex items-center gap-1 cursor-pointer"
+                          title="Admin: Upload New Offer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Add Offer</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Search & Dietary Preference Row */}
@@ -1058,9 +1363,9 @@ export default function Home() {
               <a className="hover:text-[#A97A55]" href="#menu-section">
                 Menu ({totalItemCount})
               </a>
-              <Link className="hover:text-[#A97A55] font-semibold text-[#A97A55]" href="/offers">
+              <a className="hover:text-[#A97A55] font-semibold text-[#A97A55]" href="#offers">
                 Offers & Specials
-              </Link>
+              </a>
               <a className="hover:text-[#A97A55]" href="#about-section">
                 About
               </a>
@@ -1129,10 +1434,70 @@ export default function Home() {
         </div>
       </footer>
 
+      {/* Full Offer Poster Preview Lightbox Modal */}
+      {selectedOfferPreview && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={() => setSelectedOfferPreview(null)}
+        >
+          <div
+            className="relative max-w-2xl w-full bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-[#E8D8C6] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setSelectedOfferPreview(null)}
+              className="absolute top-4 right-4 text-stone-400 hover:text-stone-800 p-2 rounded-full hover:bg-stone-100 cursor-pointer z-10 transition"
+              aria-label="Close poster preview"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="mb-4 pr-12">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#A97A55]">
+                {selectedOfferPreview.badge || "Special Promotion"}
+              </span>
+              <h3 className="text-xl sm:text-2xl font-bold font-serif text-[#2F2622]">
+                {selectedOfferPreview.title}
+              </h3>
+            </div>
+
+            <div className="relative w-full max-h-[65vh] rounded-2xl overflow-hidden bg-stone-900 border border-stone-200 flex items-center justify-center">
+              <img
+                src={selectedOfferPreview.image}
+                alt={selectedOfferPreview.title}
+                className="max-h-[65vh] w-full object-contain"
+              />
+            </div>
+
+            <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <p className="text-xs text-stone-600 flex-1 leading-relaxed">
+                {selectedOfferPreview.description}
+              </p>
+              <a
+                href={getWhatsAppOfferUrl(selectedOfferPreview.title)}
+                target="_blank"
+                rel="noreferrer"
+                className="shrink-0 px-5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow-sm"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>Claim Offer on WhatsApp</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Admin Manager Modal */}
       <AdminManager
         isOpen={isAdminOpen}
         onClose={() => setIsAdminOpen(false)}
+        onOffersChange={(updated) => {
+          if (updated) {
+            setOffers(updated);
+          } else {
+            refreshOffers();
+          }
+        }}
       />
     </div>
   );

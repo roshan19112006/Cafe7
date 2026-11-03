@@ -30,7 +30,7 @@ export default function AdminPage() {
         isOpen={isOpen}
         onClose={() => {
           if (typeof window !== "undefined") {
-            window.location.href = "/offers";
+            window.location.href = "/#offers";
           }
         }}
       />
