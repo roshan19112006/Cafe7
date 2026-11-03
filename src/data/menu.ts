@@ -946,21 +946,21 @@ export const MENU_CATEGORIES: MenuCategory[] = [
     items: [
       {
         id: "bv-1",
-        name: "Mineral Water (Small)",
+        name: "Aquafina",
         category: "beverages",
         price: 20,
         isVeg: true,
         image: "/images/items/mineral-water.webp",
-        description: "Pure packaged chilled mineral drinking water (small bottle)."
+        description: "Pure packaged chilled Aquafina drinking water."
       },
       {
         id: "bv-2",
-        name: "Mineral Water (Large)",
+        name: "Tata Lyfe",
         category: "beverages",
         price: 50,
         isVeg: true,
         image: "/images/items/mineral-water-large.webp",
-        description: "Pure packaged chilled mineral drinking water (large bottle)."
+        description: "Tata Lyfe+ premium alkaline packaged drinking water."
       },
       {
         id: "bv-3",
