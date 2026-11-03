@@ -961,15 +961,43 @@ export default function Home() {
                           </div>
                         </div>
 
-                        {/* Order Button */}
-                        <div className="p-5 pt-0">
+                        {/* Order Actions: Compact Add to Order + Swiggy + Zomato */}
+                        <div className="p-4 sm:p-5 pt-0 flex items-center gap-1.5 sm:gap-2">
+                          {/* Add to Cart / Order (Smaller) */}
                           <button
                             onClick={() => addToCart(item)}
-                            className="w-full py-2.5 rounded-full bg-[#F4EEE7] hover:bg-[#A97A55] text-[#2F2622] hover:text-white border border-[#E8D8C6] text-xs font-semibold transition flex items-center justify-center space-x-1.5 cursor-pointer shadow-2xs"
+                            className="flex-1 min-w-0 py-2 px-2.5 sm:px-3 rounded-full bg-[#F4EEE7] hover:bg-[#A97A55] text-[#2F2622] hover:text-white border border-[#E8D8C6] text-[11px] sm:text-xs font-semibold transition flex items-center justify-center gap-1 cursor-pointer shadow-2xs truncate"
+                            title={`Add ${item.name} to order`}
                           >
-                            <Plus className="w-3.5 h-3.5" />
-                            <span>Add to Order • ₹{item.price}</span>
+                            <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                            <span className="truncate">Add • ₹{item.price}</span>
                           </button>
+
+                          {/* Swiggy Button */}
+                          <a
+                            href="https://www.swiggy.com/city/chennai/cafe-7-porur-rest1425555"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="py-2 px-2.5 sm:px-3 rounded-full bg-[#FFF5ED] hover:bg-[#FC8019] text-[#E46000] hover:text-white border border-[#FED7AA] hover:border-[#FC8019] text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer shadow-2xs shrink-0 group/swiggy"
+                            title={`Order ${item.name} on Swiggy`}
+                            aria-label={`Order ${item.name} on Swiggy`}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#FC8019] group-hover/swiggy:bg-white transition-colors" />
+                            <span>Swiggy</span>
+                          </a>
+
+                          {/* Zomato Button */}
+                          <a
+                            href="https://www.zomato.com/chennai/cafe-7-valasaravakkam/order"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="py-2 px-2.5 sm:px-3 rounded-full bg-[#FFF1F2] hover:bg-[#E23744] text-[#E23744] hover:text-white border border-[#FECDD3] hover:border-[#E23744] text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer shadow-2xs shrink-0 group/zomato"
+                            title={`Order ${item.name} on Zomato`}
+                            aria-label={`Order ${item.name} on Zomato`}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#E23744] group-hover/zomato:bg-white transition-colors" />
+                            <span className="italic">zomato</span>
+                          </a>
                         </div>
                       </article>
                     ))}
@@ -1190,20 +1218,46 @@ export default function Home() {
               />
             </div>
 
-            <div className="mt-4 flex items-center justify-between">
-              <span className="text-xs text-stone-500">
+            <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <span className="text-xs text-stone-500 hidden sm:inline">
                 100% Uncropped Original Presentation
               </span>
-              <button
-                onClick={() => {
-                  addToCart(selectedPreviewItem);
-                  setSelectedPreviewItem(null);
-                }}
-                className="px-5 py-2.5 rounded-full bg-[#A97A55] hover:bg-[#8e643f] text-white text-xs font-semibold flex items-center space-x-1.5 cursor-pointer shadow-sm transition"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add to Order • ₹{selectedPreviewItem.price}</span>
-              </button>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <button
+                  onClick={() => {
+                    addToCart(selectedPreviewItem);
+                    setSelectedPreviewItem(null);
+                  }}
+                  className="flex-1 sm:flex-none px-4 py-2 rounded-full bg-[#A97A55] hover:bg-[#8e643f] text-white text-xs font-semibold flex items-center justify-center space-x-1.5 cursor-pointer shadow-sm transition"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add to Order • ₹{selectedPreviewItem.price}</span>
+                </button>
+
+                <a
+                  href="https://www.swiggy.com/city/chennai/cafe-7-porur-rest1425555"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3.5 py-2 rounded-full bg-[#FFF5ED] hover:bg-[#FC8019] text-[#E46000] hover:text-white border border-[#FED7AA] hover:border-[#FC8019] text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs group/swiggy"
+                  title="Order on Swiggy"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#FC8019] group-hover/swiggy:bg-white transition-colors" />
+                  <span>Swiggy</span>
+                  <ExternalLink className="w-3 h-3 opacity-70" />
+                </a>
+
+                <a
+                  href="https://www.zomato.com/chennai/cafe-7-valasaravakkam/order"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3.5 py-2 rounded-full bg-[#FFF1F2] hover:bg-[#E23744] text-[#E23744] hover:text-white border border-[#FECDD3] hover:border-[#E23744] text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs group/zomato"
+                  title="Order on Zomato"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#E23744] group-hover/zomato:bg-white transition-colors" />
+                  <span className="italic">zomato</span>
+                  <ExternalLink className="w-3 h-3 opacity-70" />
+                </a>
+              </div>
             </div>
           </div>
         </div>
