@@ -948,9 +948,9 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         id: "bv-1",
         name: "Mineral Water (Small)",
         category: "beverages",
-        price: 10,
+        price: 20,
         isVeg: true,
-        image: "/images/items/chilled-beverages.webp",
+        image: "/images/items/mineral-water.webp",
         description: "Pure packaged chilled mineral drinking water (small bottle)."
       },
       {
@@ -959,7 +959,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "beverages",
         price: 20,
         isVeg: true,
-        image: "/images/items/chilled-beverages.webp",
+        image: "/images/items/mineral-water.webp",
         description: "Pure packaged chilled mineral drinking water (large bottle)."
       },
       {
