@@ -970,7 +970,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         isVeg: true,
         image: "/images/items/chilled-beverages.webp",
         badge: "Chilled Cans",
-        description: "Chilled aerated canned beverages (Coke, Sprite, Thums Up, Fanta)."
+        description: "Chilled aerated canned beverages (Pepsi, Black Pepsi, 7UP)."
       },
       {
         id: "bv-4",
