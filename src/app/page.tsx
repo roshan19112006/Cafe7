@@ -270,9 +270,20 @@ export default function Home() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <Link
             href="/"
-            className="text-xl font-semibold tracking-[0.2em] text-[#2F2622] font-serif"
+            className="flex items-center gap-2.5 sm:gap-3 group"
           >
-            CAFE 7
+            <div className="relative w-8 h-8 sm:w-9 sm:h-9 shrink-0 transition-transform duration-300 group-hover:scale-105">
+              <Image
+                src="/images/cafe7-logo.webp"
+                alt="Cafe 7 Logo"
+                fill
+                priority
+                className="object-contain"
+              />
+            </div>
+            <span className="text-xl font-semibold tracking-[0.2em] text-[#2F2622] font-serif">
+              CAFE 7
+            </span>
           </Link>
 
           <nav className="hidden items-center gap-8 text-sm font-medium text-[#3B312C] md:flex">
@@ -1400,9 +1411,19 @@ export default function Home() {
       <footer className="border-t border-[#E8D8C6] bg-[#F4EEE7]">
         <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[1.2fr_0.8fr_0.8fr] lg:px-8">
           <div>
-            <p className="text-xl font-semibold tracking-[0.25em] text-[#2F2622] font-serif">
-              CAFE 7
-            </p>
+            <div className="flex items-center gap-2.5">
+              <div className="relative w-8 h-8 shrink-0">
+                <Image
+                  src="/images/cafe7-logo.webp"
+                  alt="Cafe 7 Logo"
+                  fill
+                  className="object-contain"
+                />
+              </div>
+              <p className="text-xl font-semibold tracking-[0.25em] text-[#2F2622] font-serif">
+                CAFE 7
+              </p>
+            </div>
             <p className="mt-4 max-w-md text-base leading-8 text-[#3B312C]">
               Cafe 7 – Freshly Crafted. Served with Care.
             </p>
