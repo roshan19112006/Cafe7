@@ -995,7 +995,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "combos",
         price: 159,
         isVeg: true,
-        image: "/images/items/cafe-combo-meal.webp",
+        image: "/images/items/combo-fries-soft-drink.webp",
         badge: "Combo Value",
         description: "Golden crispy fries paired with your choice of chilled soft drink. Available with burger or wrap."
       },
@@ -1005,7 +1005,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "combos",
         price: 199,
         isVeg: true,
-        image: "/images/items/cafe-combo-meal.webp",
+        image: "/images/items/combo-fries-refreshers.webp",
         badge: "Best Pairing",
         description: "Golden crispy fries paired with any artisanal sparkling refresher. Available with burger or wrap."
       },
@@ -1015,7 +1015,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "combos",
         price: 209,
         isVeg: true,
-        image: "/images/items/cafe-combo-meal.webp",
+        image: "/images/items/combo-fries-lemonade.webp",
         badge: "Thirst Quencher",
         description: "Golden crispy fries paired with a chilled zesty lemonade. Available with burger or wrap."
       }
