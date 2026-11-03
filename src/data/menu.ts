@@ -978,7 +978,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "beverages",
         price: 60,
         isVeg: true,
-        image: "/images/items/chilled-beverages.webp",
+        image: "/images/items/energy-drink.webp",
         badge: "Boost",
         description: "Ice cold energizing canned beverage for instant vitality."
       }
