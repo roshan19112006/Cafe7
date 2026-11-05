@@ -16,6 +16,7 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://cafe7.in'),
   title: `${RESTAURANT_INFO.name} — QR Digital Dine-in Menu`,
   description: `Browse the official digital menu for ${RESTAURANT_INFO.name} (${RESTAURANT_INFO.location}). Gourmet burgers, crispy wings, wraps, thick milkshakes, and barista coffee.`,
   keywords: [
