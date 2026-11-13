@@ -1,297 +1,1579 @@
-'use client';
+"use client";
 
-import React, { useState, useMemo, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import React, { useState, useMemo, useEffect } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import {
-  CATEGORIES,
-  MENU_ITEMS,
-  RESTAURANT_INFO,
-} from '@/data/menu';
-import { CategoryId, DietaryFilterType, MenuItem } from '@/types/menu';
-import { Header } from '@/components/Header';
-import { CategoryNav } from '@/components/CategoryNav';
-import { SearchBar } from '@/components/SearchBar';
-import { MenuCard } from '@/components/MenuCard';
-import { FoodModal } from '@/components/FoodModal';
-import { QrCodeModal } from '@/components/QrCodeModal';
-import { Footer } from '@/components/Footer';
-import { Sparkles, Utensils, AlertCircle } from 'lucide-react';
+  MENU_CATEGORIES,
+  MenuItem
+} from "@/data/menu";
+import {
+  Offer,
+  getStoredOffers,
+  fetchOffersFromServer,
+  deleteOfferFromServer,
+  STORAGE_KEY_AUTH,
+} from "@/data/offers";
+import {
+  Search,
+  ShoppingBag,
+  Flame,
+  CheckCircle2,
+  ExternalLink,
+  Phone,
+  Clock3,
+  MapPin,
+  X,
+  Plus,
+  Minus,
+  UtensilsCrossed,
+  BadgeCheck,
+  MessageCircleMore,
+  Eye,
+  Lock,
+  Menu as MenuIcon,
+  Sparkles,
+  Tag,
+  Clock,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  MessageCircle
+} from "lucide-react";
+import AdminManager from "@/components/AdminManager";
 
-function MenuContent() {
-  const searchParams = useSearchParams();
-  const initialTable = searchParams?.get('table') || '07';
-
-  const [activeCategory, setActiveCategory] = useState<CategoryId>('burgers');
-  const [dietaryFilter, setDietaryFilter] = useState<DietaryFilterType>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
-  const [tableNumber, setTableNumber] = useState(initialTable);
-  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
-
-  // Update table if query param changes
-  useEffect(() => {
-    const tableParam = searchParams?.get('table');
-    if (tableParam) {
-      setTableNumber(tableParam);
-    }
-  }, [searchParams]);
-
-  // Compute category counts for pills
-  const categoryCounts = useMemo(() => {
-    const counts: Record<CategoryId, number> = {
-      all: MENU_ITEMS.length,
-      burgers: 0,
-      wraps: 0,
-      appetizers: 0,
-      wings: 0,
-      fries: 0,
-      combos: 0,
-      coffee: 0,
-      beverages: 0,
-      lemonades: 0,
-      mojitos: 0,
-      milkshakes: 0,
-    };
-
-    MENU_ITEMS.forEach((item) => {
-      if (counts[item.category] !== undefined) {
-        counts[item.category]++;
-      }
-    });
-
-    return counts;
-  }, []);
-
-  // Filter items based on activeCategory, dietaryFilter, and searchQuery
-  const filteredItems = useMemo(() => {
-    return MENU_ITEMS.filter((item) => {
-      // 1. Category match
-      if (activeCategory !== 'all' && item.category !== activeCategory) {
-        return false;
-      }
-
-      // 2. Dietary match
-      if (dietaryFilter === 'veg' && !item.isVeg) {
-        return false;
-      }
-      if (dietaryFilter === 'non-veg' && item.isVeg) {
-        return false;
-      }
-
-      // 3. Search query match
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase().trim();
-        const matchesName = item.name.toLowerCase().includes(query);
-        const matchesDesc = item.description.toLowerCase().includes(query);
-        const matchesBadge = item.badge?.toLowerCase().includes(query);
-        const matchesSubcat = item.subCategory?.toLowerCase().includes(query);
-        return matchesName || matchesDesc || matchesBadge || matchesSubcat;
-      }
-
-      return true;
-    });
-  }, [activeCategory, dietaryFilter, searchQuery]);
-
-  // Counts for current search/category scope
-  const { vegCount, nonVegCount } = useMemo(() => {
-    let veg = 0;
-    let nonVeg = 0;
-
-    // Filter by active category and search, ignoring dietary to show accurate count pills
-    MENU_ITEMS.forEach((item) => {
-      if (activeCategory !== 'all' && item.category !== activeCategory) return;
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase().trim();
-        const matches =
-          item.name.toLowerCase().includes(query) ||
-          item.description.toLowerCase().includes(query) ||
-          item.badge?.toLowerCase().includes(query) ||
-          item.subCategory?.toLowerCase().includes(query);
-        if (!matches) return;
-      }
-
-      if (item.isVeg) veg++;
-      else nonVeg++;
-    });
-
-    return { vegCount: veg, nonVegCount: nonVeg };
-  }, [activeCategory, searchQuery]);
-
-  // Find index of selected item in current filtered list for next/prev navigation
-  const currentIndex = useMemo(() => {
-    if (!selectedItem) return -1;
-    return filteredItems.findIndex((it) => it.id === selectedItem.id);
-  }, [selectedItem, filteredItems]);
-
-  const handleNextItem = () => {
-    if (currentIndex >= 0 && currentIndex < filteredItems.length - 1) {
-      setSelectedItem(filteredItems[currentIndex + 1]);
-    } else if (filteredItems.length > 0) {
-      setSelectedItem(filteredItems[0]); // Loop around
-    }
-  };
-
-  const handlePrevItem = () => {
-    if (currentIndex > 0) {
-      setSelectedItem(filteredItems[currentIndex - 1]);
-    } else if (filteredItems.length > 0) {
-      setSelectedItem(filteredItems[filteredItems.length - 1]); // Loop around
-    }
-  };
-
-  // Get current category metadata
-  const currentCategoryInfo = useMemo(() => {
-    return (
-      CATEGORIES.find((c) => c.id === activeCategory) || {
-        id: 'burgers' as CategoryId,
-        name: 'Burgers',
-        description: 'Explore delicious items',
-        icon: 'Burger',
-      }
-    );
-  }, [activeCategory]);
-
-  return (
-    <div className="min-h-screen bg-[#090a0f] flex flex-col">
-      {/* 1. Header */}
-      <Header
-        onOpenQr={() => setIsQrModalOpen(true)}
-        tableNumber={tableNumber}
-        onTableChange={setTableNumber}
-      />
-
-      {/* 2. Sticky Category Navigation */}
-      <CategoryNav
-        categories={CATEGORIES}
-        activeCategory={activeCategory}
-        onSelectCategory={(id) => {
-          setActiveCategory(id);
-          // Optional: clear search if user explicitly switches category
-        }}
-        categoryCounts={categoryCounts}
-      />
-
-      {/* 3. Search & Dietary Bar */}
-      <SearchBar
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        dietaryFilter={dietaryFilter}
-        onDietaryChange={setDietaryFilter}
-        vegCount={vegCount}
-        nonVegCount={nonVegCount}
-        totalFiltered={filteredItems.length}
-      />
-
-      {/* 4. Main Menu Items Section */}
-      <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-5 sm:py-7">
-        {/* Category Header Title */}
-        <div className="mb-5 sm:mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl sm:text-2xl font-bold font-display text-white tracking-tight">
-                  {searchQuery ? `Search Results` : currentCategoryInfo.name}
-                </h2>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#1b202e] text-[#f3b73e] border border-[#2b334a] font-semibold">
-                  {filteredItems.length} items
-                </span>
-              </div>
-              <p className="text-xs sm:text-sm text-gray-400 mt-1">
-                {searchQuery
-                  ? `Showing results matching "${searchQuery}"`
-                  : currentCategoryInfo.description}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Food Items Grid (1-column on mobile, 2-column on tablet/desktop) */}
-        {filteredItems.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-            {filteredItems.map((item) => (
-              <MenuCard
-                key={item.id}
-                item={item}
-                onSelect={(selected) => setSelectedItem(selected)}
-              />
-            ))}
-          </div>
-        ) : (
-          /* Empty Search / Filter State */
-          <div className="bg-[#121520] border border-[#23293a] rounded-3xl p-8 sm:p-12 text-center space-y-4 my-6">
-            <div className="w-16 h-16 rounded-2xl bg-[#1b2030] border border-[#2c344e] mx-auto flex items-center justify-center text-gray-400">
-              <AlertCircle className="w-8 h-8 text-[#f3b73e]" />
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-lg font-bold text-white font-display">
-                No menu items found
-              </h3>
-              <p className="text-xs sm:text-sm text-gray-400 max-w-sm mx-auto">
-                {searchQuery
-                  ? `We couldn't find any dishes matching "${searchQuery}". Try searching for burgers, wraps, fries, or wings.`
-                  : 'No items match the currently selected dietary filter.'}
-              </p>
-            </div>
-            <div className="flex items-center justify-center gap-3 pt-2">
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="px-4 py-2 bg-[#f3b73e] text-black font-semibold text-xs rounded-xl hover:bg-[#f5b84d] transition-colors"
-                >
-                  Clear Search
-                </button>
-              )}
-              {dietaryFilter !== 'all' && (
-                <button
-                  onClick={() => setDietaryFilter('all')}
-                  className="px-4 py-2 bg-[#202537] text-white font-medium text-xs rounded-xl border border-[#2e374f] hover:bg-[#282f45] transition-colors"
-                >
-                  Reset Dietary Filter
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-      </main>
-
-      {/* 5. Food Image Preview Modal (Popup) */}
-      <FoodModal
-        item={selectedItem}
-        onClose={() => setSelectedItem(null)}
-        onNext={handleNextItem}
-        onPrev={handlePrevItem}
-        hasMultiple={filteredItems.length > 1}
-        tableNumber={tableNumber}
-      />
-
-      {/* 6. QR Code Standee Modal */}
-      <QrCodeModal
-        isOpen={isQrModalOpen}
-        onClose={() => setIsQrModalOpen(false)}
-        currentTable={tableNumber}
-      />
-
-      {/* 7. Footer */}
-      <Footer onOpenQr={() => setIsQrModalOpen(true)} />
-    </div>
-  );
+interface CartItem {
+  item: MenuItem;
+  quantity: number;
 }
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [dietaryFilter, setDietaryFilter] = useState<"all" | "veg" | "non-veg">("all");
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
+  const [activeMenuCard, setActiveMenuCard] = useState<"menu1" | null>(null);
+  const [selectedPreviewItem, setSelectedPreviewItem] = useState<MenuItem | null>(null);
+  const [isAdminOpen, setIsAdminOpen] = useState<boolean>(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Offers integration state
+  const [offers, setOffers] = useState<Offer[]>([]);
+  const [activeOfferIndex, setActiveOfferIndex] = useState<number>(0);
+  const [selectedOfferPreview, setSelectedOfferPreview] = useState<Offer | null>(null);
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(false);
+  const [isOffersLoaded, setIsOffersLoaded] = useState<boolean>(false);
+  const [isOfferPaused, setIsOfferPaused] = useState<boolean>(false);
+
+  const triggerToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 2500);
+  };
+
+  const addToCart = (item: MenuItem) => {
+    setCart((prev) => {
+      const existing = prev.find((i) => i.item.id === item.id);
+      if (existing) {
+        return prev.map((i) =>
+          i.item.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
+        );
+      }
+      return [...prev, { item, quantity: 1 }];
+    });
+    triggerToast(`Added ${item.name} to order`);
+  };
+
+  const removeFromCart = (id: string) => {
+    setCart((prev) =>
+      prev
+        .map((i) => (i.item.id === id ? { ...i, quantity: i.quantity - 1 } : i))
+        .filter((i) => i.quantity > 0)
+    );
+  };
+
+  const cartTotal = useMemo(() => {
+    return cart.reduce((sum, item) => sum + item.item.price * item.quantity, 0);
+  }, [cart]);
+
+  const cartItemCount = useMemo(() => {
+    return cart.reduce((sum, item) => sum + item.quantity, 0);
+  }, [cart]);
+
+  const getWhatsAppOrderUrl = () => {
+    if (cart.length === 0) return "#";
+    let text = `*New Order from Cafe 7 Website*\n\n`;
+    cart.forEach((c, idx) => {
+      text += `${idx + 1}. ${c.item.name} x${c.quantity} - ₹${c.item.price * c.quantity}\n`;
+    });
+    text += `\n*Subtotal: ₹${cartTotal}* (taxes extra)\n`;
+    text += `Please confirm my order and share preparation time. Thank you!`;
+    return `https://wa.me/917200699989?text=${encodeURIComponent(text)}`;
+  };
+
+  const getWhatsAppOfferUrl = (offerTitle: string) => {
+    const text = `*Hi Cafe 7!*\n\nI would like to order and claim the special offer: *${offerTitle}*.\nCould you please share availability and total price? Thank you!`;
+    return `https://wa.me/917200699989?text=${encodeURIComponent(text)}`;
+  };
+
+  const refreshOffers = async () => {
+    if (typeof window !== "undefined") {
+      setIsAdminLoggedIn(localStorage.getItem(STORAGE_KEY_AUTH) === "true");
+    }
+    const loaded = await fetchOffersFromServer();
+    setOffers(loaded);
+    setIsOffersLoaded(true);
+  };
+
+  useEffect(() => {
+    // 1. Instant load from local cache if present
+    const cached = getStoredOffers();
+    if (cached.length > 0) {
+      setOffers(cached);
+      setIsOffersLoaded(true);
+    }
+    if (typeof window !== "undefined") {
+      setIsAdminLoggedIn(localStorage.getItem(STORAGE_KEY_AUTH) === "true");
+    }
+
+    // 2. Fetch fresh synchronized offers from server
+    refreshOffers();
+
+    // 3. React to updates from AdminManager and other tabs
+    const handleUpdate = () => {
+      if (typeof window !== "undefined") {
+        setIsAdminLoggedIn(localStorage.getItem(STORAGE_KEY_AUTH) === "true");
+        setOffers(getStoredOffers());
+      }
+    };
+
+    window.addEventListener("cafe7_offers_updated", handleUpdate);
+    window.addEventListener("cafe7_auth_changed", handleUpdate);
+    window.addEventListener("storage", handleUpdate);
+
+    return () => {
+      window.removeEventListener("cafe7_offers_updated", handleUpdate);
+      window.removeEventListener("cafe7_auth_changed", handleUpdate);
+      window.removeEventListener("storage", handleUpdate);
+    };
+  }, []);
+
+  // Auto-slide carousel when multiple offers exist
+  useEffect(() => {
+    if (offers.length <= 1 || isOfferPaused) return;
+    const timer = setInterval(() => {
+      setActiveOfferIndex((prev) => (prev + 1) % offers.length);
+    }, 5500);
+    return () => clearInterval(timer);
+  }, [offers.length, isOfferPaused]);
+
+  // Grouped categories for filter tabs
+  const displayedCategories = useMemo(() => {
+    return MENU_CATEGORIES.filter((cat) => {
+      if (activeTab === "all") return true;
+
+      // Group burgers
+      if (activeTab === "burgers") {
+        return (
+          cat.id === "chicken-crunch-burgers" ||
+          cat.id === "grilled-chicken-burgers" ||
+          cat.id === "veg-burgers"
+        );
+      }
+
+      // Group fries & loaded fries
+      if (activeTab === "fries") {
+        return cat.id === "fries" || cat.id === "loaded-fries";
+      }
+
+      if (activeTab === "wraps") return cat.id === "wraps";
+      if (activeTab === "appetizers") return cat.id === "appetizers";
+      if (activeTab === "chicken-wings") return cat.id === "chicken-wings";
+      if (activeTab === "chicken-tenders") return cat.id === "chicken-tenders";
+      if (activeTab === "coffee") return cat.id === "hot-cold-coffee";
+      if (activeTab === "iced-tea") return cat.id === "iced-tea";
+      if (activeTab === "milk-shakes") return cat.id === "signature-milk-shakes";
+      if (activeTab === "lemonades") return cat.id === "lemonades";
+      if (activeTab === "refreshers") return cat.id === "refreshers";
+      if (activeTab === "mojitos") return cat.id === "mojitos";
+      if (activeTab === "beverages") return cat.id === "beverages";
+      if (activeTab === "combos") return cat.id === "combos";
+
+      return cat.id === activeTab;
+    }).map((cat) => {
+      const items = cat.items.filter((item) => {
+        if (searchQuery.trim()) {
+          const q = searchQuery.toLowerCase();
+          const matchName = item.name.toLowerCase().includes(q);
+          const matchDesc = item.description?.toLowerCase().includes(q);
+          if (!matchName && !matchDesc) return false;
+        }
+        if (dietaryFilter === "veg" && !item.isVeg) return false;
+        if (dietaryFilter === "non-veg" && item.isVeg) return false;
+        return true;
+      });
+      return { ...cat, items };
+    }).filter((cat) => cat.items.length > 0);
+  }, [activeTab, searchQuery, dietaryFilter]);
+
+  const totalItemCount = useMemo(() => {
+    return MENU_CATEGORIES.reduce((acc, cat) => acc + cat.items.length, 0);
+  }, []);
+
+  const burgerCount = useMemo(() => {
+    return MENU_CATEGORIES.filter(
+      (c) =>
+        c.id === "chicken-crunch-burgers" ||
+        c.id === "grilled-chicken-burgers" ||
+        c.id === "veg-burgers"
+    ).reduce((sum, c) => sum + c.items.length, 0);
+  }, []);
+
+  const friesCount = useMemo(() => {
+    return MENU_CATEGORIES.filter(
+      (c) => c.id === "fries" || c.id === "loaded-fries"
+    ).reduce((sum, c) => sum + c.items.length, 0);
+  }, []);
+
+  const categoryTabs = useMemo(() => [
+    { id: "all", label: "View All Menu", count: totalItemCount },
+    { id: "burgers", label: "🍔 Burgers", count: burgerCount },
+    { id: "wraps", label: "🌯 Wraps", count: MENU_CATEGORIES.find(c => c.id === "wraps")?.items.length || 0 },
+    { id: "appetizers", label: "🥟 Appetizers", count: MENU_CATEGORIES.find(c => c.id === "appetizers")?.items.length || 0 },
+    { id: "chicken-wings", label: "🍗 Wings", count: MENU_CATEGORIES.find(c => c.id === "chicken-wings")?.items.length || 0 },
+    { id: "chicken-tenders", label: "🍗 Crispy Tenders", count: MENU_CATEGORIES.find(c => c.id === "chicken-tenders")?.items.length || 0 },
+    { id: "fries", label: "🍟 Fries & Loaded", count: friesCount },
+    { id: "coffee", label: "☕ Hot & Cold Coffee", count: MENU_CATEGORIES.find(c => c.id === "hot-cold-coffee")?.items.length || 0 },
+    { id: "iced-tea", label: "🧊 Iced Tea", count: MENU_CATEGORIES.find(c => c.id === "iced-tea")?.items.length || 0 },
+    { id: "milk-shakes", label: "🥤 Milk Shakes", count: MENU_CATEGORIES.find(c => c.id === "signature-milk-shakes")?.items.length || 0 },
+    { id: "lemonades", label: "🍋 Lemonade", count: MENU_CATEGORIES.find(c => c.id === "lemonades")?.items.length || 0 },
+    { id: "mojitos", label: "🍹 Mojitos", count: MENU_CATEGORIES.find(c => c.id === "mojitos")?.items.length || 0 },
+    { id: "refreshers", label: "🍸 Refreshers", count: MENU_CATEGORIES.find(c => c.id === "refreshers")?.items.length || 0 },
+    { id: "beverages", label: "🥤 Beverages", count: MENU_CATEGORIES.find(c => c.id === "beverages")?.items.length || 0 },
+    { id: "combos", label: "🍱 Combos", count: MENU_CATEGORIES.find(c => c.id === "combos")?.items.length || 0 }
+  ], [totalItemCount, burgerCount, friesCount]);
+
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-[#090a0f] flex items-center justify-center text-[#f3b73e]">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-[#f3b73e] border-t-transparent rounded-full animate-spin" />
-            <span className="text-xs uppercase tracking-widest text-gray-400">
-              Loading Cafe 7 Menu...
+    <div className="min-h-full bg-[#FBF8F4] text-[#3B312C] font-sans">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-[#A97A55] text-white font-medium px-5 py-3 rounded-full shadow-2xl flex items-center space-x-2 animate-bounce">
+          <CheckCircle2 className="w-5 h-5 text-white" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-40 border-b border-black/5 bg-[#FBF8F4]/90 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+          <Link
+            href="/"
+            className="flex items-center gap-2.5 sm:gap-3 group"
+          >
+            <div className="relative w-8 h-8 sm:w-9 sm:h-9 shrink-0 transition-transform duration-300 group-hover:scale-105">
+              <Image
+                src="/images/cafe7-logo.webp"
+                alt="Cafe 7 Logo"
+                fill
+                priority
+                className="object-contain"
+              />
+            </div>
+            <span className="text-xl font-semibold tracking-[0.2em] text-[#2F2622] font-serif">
+              CAFE 7
             </span>
+          </Link>
+
+          <nav className="hidden items-center gap-8 text-sm font-medium text-[#3B312C] md:flex">
+            <Link href="/" className="text-[#A97A55] transition">
+              Home
+            </Link>
+            <a href="#menu-section" className="transition hover:text-[#A97A55]">
+              Menu ({totalItemCount})
+            </a>
+            <a
+              href="#offers"
+              className="transition hover:text-[#A97A55] flex items-center space-x-1"
+            >
+              <span>Offers</span>
+              {offers.length > 0 ? (
+                <span className="bg-rose-500 text-white text-[9px] px-1.5 py-0.2 rounded-full font-bold uppercase animate-pulse">
+                  {offers.length} Hot
+                </span>
+              ) : (
+                <span className="bg-[#A97A55]/15 text-[#A97A55] text-[9px] px-1.5 py-0.2 rounded-full font-bold uppercase">
+                  Hot
+                </span>
+              )}
+            </a>
+            <a href="#about-section" className="transition hover:text-[#A97A55]">
+              About
+            </a>
+            <a href="#contact-section" className="transition hover:text-[#A97A55]">
+              Contact
+            </a>
+          </nav>
+
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            <button
+              onClick={() => setActiveMenuCard("menu1")}
+              className="hidden lg:inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full border border-[#E8D8C6] bg-white text-xs font-semibold text-[#2F2622] hover:bg-[#F4EEE7] transition cursor-pointer"
+            >
+              <Eye className="w-3.5 h-3.5 text-[#A97A55]" />
+              <span>Menu Card</span>
+            </button>
+
+            <button
+              onClick={() => setIsCartOpen(true)}
+              className="rounded-full bg-[#A97A55] px-4 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#8e643f] flex items-center space-x-1.5 sm:space-x-2 cursor-pointer"
+            >
+              <ShoppingBag className="w-4 h-4" />
+              <span>Order Now</span>
+              {cartItemCount > 0 && (
+                <span className="bg-white text-[#2F2622] text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center ml-0.5 sm:ml-1">
+                  {cartItemCount}
+                </span>
+              )}
+            </button>
+
+            {/* Mobile Hamburger Toggle Button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 rounded-xl border border-[#E8D8C6] bg-white text-[#2F2622] hover:bg-[#F4EEE7] transition cursor-pointer flex items-center justify-center"
+              aria-label="Toggle navigation menu"
+            >
+              {isMobileMenuOpen ? (
+                <X className="w-5 h-5 text-[#A97A55]" />
+              ) : (
+                <MenuIcon className="w-5 h-5 text-[#2F2622]" />
+              )}
+            </button>
           </div>
         </div>
-      }
-    >
-      <MenuContent />
-    </Suspense>
+
+        {/* Mobile Dropdown Navigation Drawer */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-[#E8D8C6] bg-[#FBF8F4] px-4 py-4 space-y-2.5 shadow-xl animate-in slide-in-from-top-2 duration-200">
+            <Link
+              href="/"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-between p-3 rounded-2xl bg-white border border-[#E8D8C6] text-sm font-semibold text-[#2F2622] hover:bg-[#F4EEE7] transition"
+            >
+              <div className="flex items-center space-x-3">
+                <span className="text-base">🏠</span>
+                <span>Home</span>
+              </div>
+              <span className="text-[11px] text-[#A97A55] font-medium">Main</span>
+            </Link>
+
+            <a
+              href="#menu-section"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-between p-3 rounded-2xl bg-white border border-[#E8D8C6] text-sm font-semibold text-[#2F2622] hover:bg-[#F4EEE7] transition"
+            >
+              <div className="flex items-center space-x-3">
+                <span className="text-base">🍔</span>
+                <span>Full Menu</span>
+              </div>
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#A97A55]/10 text-[#A97A55] font-bold">
+                {totalItemCount} Items
+              </span>
+            </a>
+
+            <a
+              href="#offers"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-between p-3 rounded-2xl bg-[#FAF4ED] border border-[#A97A55]/40 text-sm font-bold text-[#A97A55] hover:bg-[#F4EEE7] transition"
+            >
+              <div className="flex items-center space-x-3">
+                <span className="text-base">🏷️</span>
+                <span>Special Offers & Deals</span>
+              </div>
+              {offers.length > 0 ? (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500 text-white font-bold uppercase animate-pulse">
+                  {offers.length} HOT
+                </span>
+              ) : (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500 text-white font-bold uppercase">
+                  HOT
+                </span>
+              )}
+            </a>
+
+            <a
+              href="#about-section"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-between p-3 rounded-2xl bg-white border border-[#E8D8C6] text-sm font-semibold text-[#2F2622] hover:bg-[#F4EEE7] transition"
+            >
+              <div className="flex items-center space-x-3">
+                <span className="text-base">☕</span>
+                <span>About Café 7</span>
+              </div>
+            </a>
+
+            <a
+              href="#contact-section"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-between p-3 rounded-2xl bg-white border border-[#E8D8C6] text-sm font-semibold text-[#2F2622] hover:bg-[#F4EEE7] transition"
+            >
+              <div className="flex items-center space-x-3">
+                <span className="text-base">📍</span>
+                <span>Visit & Contact Us</span>
+              </div>
+            </a>
+
+            <div className="pt-2 grid grid-cols-2 gap-2">
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setActiveMenuCard("menu1");
+                }}
+                className="py-2.5 px-3 rounded-xl border border-[#E8D8C6] bg-white text-xs font-semibold text-[#2F2622] flex items-center justify-center space-x-1.5 shadow-xs"
+              >
+                <Eye className="w-3.5 h-3.5 text-[#A97A55]" />
+                <span>Menu Card</span>
+              </button>
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setIsCartOpen(true);
+                }}
+                className="py-2.5 px-3 rounded-xl bg-[#A97A55] text-white text-xs font-semibold flex items-center justify-center space-x-1.5 shadow-sm"
+              >
+                <ShoppingBag className="w-3.5 h-3.5" />
+                <span>Cart ({cartItemCount})</span>
+              </button>
+            </div>
+
+            {/* Mobile Drawer Admin Link */}
+            <div className="pt-2 border-t border-[#E8D8C6]/70 flex items-center justify-between text-xs text-stone-500">
+              <span className="text-[11px]">Staff Management</span>
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setIsAdminOpen(true);
+                }}
+                className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-stone-200/70 hover:bg-stone-200 text-[#2F2622] text-xs font-semibold cursor-pointer transition"
+              >
+                <Lock className="w-3.5 h-3.5 text-[#A97A55]" />
+                <span>Admin Login</span>
+              </button>
+            </div>
+          </div>
+        )}
+      </header>
+
+      <main>
+        {/* Hero Section */}
+        <section className="relative isolate overflow-hidden bg-[#2F2622]">
+          <div className="absolute inset-0">
+            <Image
+              src="/images/hero_burger.webp"
+              alt="A premium café burger presentation"
+              fill
+              priority
+              className="object-cover"
+            />
+            <div className="absolute inset-0 bg-black/60" />
+          </div>
+
+          <div className="relative mx-auto flex min-h-[80vh] max-w-7xl flex-col justify-center px-4 py-24 sm:px-6 lg:px-8">
+            <div className="max-w-3xl">
+              <p className="mb-4 text-sm font-semibold uppercase tracking-[0.4em] text-[#D2B08A]">
+                PREMIUM CAFÉ • FRESHLY CRAFTED
+              </p>
+              <h1 className="text-4xl font-semibold leading-tight text-white sm:text-5xl lg:text-7xl font-serif">
+                Freshly Crafted. <br />Served with Care.
+              </h1>
+              <p className="mt-6 max-w-2xl text-lg text-white/80 sm:text-xl">
+                Fresh gourmet burgers, crunchy wings, loaded fries, artisanal wraps & signature coffees. Made fresh every day.
+              </p>
+              <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+                <a
+                  href="#menu-section"
+                  className="rounded-full bg-[#A97A55] px-6 py-3 text-center font-semibold text-white transition hover:-translate-y-0.5 hover:bg-[#8e643f] cursor-pointer"
+                >
+                  Explore Menu ({totalItemCount} Items)
+                </a>
+                <button
+                  onClick={() => setIsCartOpen(true)}
+                  className="rounded-full border border-white/30 px-6 py-3 text-center font-semibold text-white transition hover:-translate-y-0.5 hover:border-[#D2B08A] hover:text-[#D2B08A] cursor-pointer"
+                >
+                  Order Online
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Menu Section with Real Images & Prices */}
+        <section id="menu-section" className="mx-auto max-w-7xl px-4 py-16 sm:py-20 sm:px-6 lg:px-8">
+          {/* Header & Offers Section: Positioned Next to the Signature Plates Paragraph & Before the Filter Bar */}
+          <div id="offers" className="scroll-mt-28">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 lg:gap-8">
+              {/* Left: Signature Plates & Pours */}
+              <div className="max-w-xl lg:max-w-md xl:max-w-lg shrink-0">
+                <div className="flex items-center gap-2 mb-3">
+                  <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#A97A55]">
+                    Official 2026 Menu
+                  </p>
+                  {offers.length > 0 && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500 text-white uppercase tracking-wider animate-pulse shadow-xs">
+                      <Sparkles className="w-3 h-3" />
+                      {offers.length} {offers.length === 1 ? "Offer Live" : "Offers Live"}
+                    </span>
+                  )}
+                </div>
+                <h2 className="text-3xl font-semibold tracking-tight text-[#2F2622] sm:text-4xl font-serif">
+                  Signature Plates & Pours
+                </h2>
+                <p className="mt-4 text-base sm:text-lg text-[#3B312C] leading-relaxed">
+                  Every dish below is freshly prepared with verified prices and high-resolution photography straight from our kitchen and barista bar.
+                </p>
+              </div>
+
+              {/* Right: Offers Section (Next to the Signature Plates Para, Before the Filter Row) */}
+              <div className="flex-1 w-full lg:max-w-xl xl:max-w-2xl">
+                {offers.length > 0 ? (
+                  /* Live Offers Card / Slider */
+                  <div
+                    onMouseEnter={() => setIsOfferPaused(true)}
+                    onMouseLeave={() => setIsOfferPaused(false)}
+                    className="flex flex-col"
+                  >
+                    {/* Header bar if multiple offers */}
+                    {offers.length > 1 && (
+                      <div className="flex items-center justify-between mb-2 px-1">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-600 text-[11px] font-bold uppercase tracking-wider">
+                            <Sparkles className="w-3 h-3 text-rose-500" />
+                            Special Deals
+                          </span>
+                          <span className="text-xs text-stone-500 font-medium">
+                            {activeOfferIndex + 1} of {offers.length}
+                          </span>
+                        </div>
+
+                        {/* Navigation Arrows & Dot Indicators */}
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1 mr-1">
+                            {offers.map((_, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => setActiveOfferIndex(idx)}
+                                className={`h-1.5 rounded-full transition-all duration-200 cursor-pointer ${
+                                  idx === activeOfferIndex
+                                    ? "w-4 bg-[#A97A55]"
+                                    : "w-1.5 bg-stone-300 hover:bg-stone-400"
+                                }`}
+                                aria-label={`Go to offer ${idx + 1}`}
+                              />
+                            ))}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setActiveOfferIndex(
+                                (prev) => (prev - 1 + offers.length) % offers.length
+                              )
+                            }
+                            className="p-1 rounded-full bg-white border border-[#E8D8C6] hover:bg-[#FAF4ED] text-[#2F2622] transition cursor-pointer shadow-xs"
+                            aria-label="Previous offer"
+                          >
+                            <ChevronLeft className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setActiveOfferIndex((prev) => (prev + 1) % offers.length)
+                            }
+                            className="p-1 rounded-full bg-white border border-[#E8D8C6] hover:bg-[#FAF4ED] text-[#2F2622] transition cursor-pointer shadow-xs"
+                            aria-label="Next offer"
+                          >
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Current Active Offer Card */}
+                    {(() => {
+                      const cur = offers[activeOfferIndex % offers.length];
+                      if (!cur) return null;
+                      return (
+                        <div className="relative rounded-2xl border border-[#E8D8C6] bg-white p-3.5 sm:p-4 shadow-sm hover:shadow-md transition-all duration-300 group overflow-hidden">
+                          <div className="flex flex-col sm:flex-row gap-3.5 sm:gap-4 items-center">
+                            {/* Poster Thumbnail */}
+                            <div
+                              onClick={() => setSelectedOfferPreview(cur)}
+                              className="relative w-full sm:w-40 h-36 sm:h-32 rounded-xl overflow-hidden bg-stone-100 border border-[#E8D8C6] shrink-0 cursor-zoom-in group/img"
+                            >
+                              <img
+                                src={cur.image}
+                                alt={cur.title}
+                                className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-300"
+                              />
+                              {cur.badge && (
+                                <span className="absolute top-2 left-2 z-10 px-2 py-0.5 rounded-full bg-rose-600 text-white text-[10px] font-bold uppercase tracking-wider shadow-sm">
+                                  {cur.badge}
+                                </span>
+                              )}
+                              <div className="absolute inset-0 bg-black/35 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1">
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>View Poster</span>
+                              </div>
+                            </div>
+
+                            {/* Offer Details */}
+                            <div className="flex-1 min-w-0 text-left w-full flex flex-col justify-between self-stretch py-0.5">
+                              <div>
+                                <div className="flex items-center justify-between gap-2 mb-1">
+                                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#A97A55] bg-[#FAF4ED] border border-[#E8D8C6] px-2 py-0.5 rounded-full">
+                                    Special Offer
+                                  </span>
+                                  {cur.validTill && (
+                                    <span className="text-[11px] text-stone-500 flex items-center gap-1 shrink-0">
+                                      <Clock className="w-3 h-3 text-[#A97A55]" />
+                                      <span>{cur.validTill}</span>
+                                    </span>
+                                  )}
+                                </div>
+
+                                <h3 className="font-serif text-base sm:text-lg font-bold text-[#2F2622] leading-snug truncate group-hover:text-[#A97A55] transition">
+                                  {cur.title}
+                                </h3>
+                                <p className="text-xs text-[#5C4A3E] mt-1 line-clamp-2 leading-relaxed">
+                                  {cur.description}
+                                </p>
+                              </div>
+
+                              <div className="mt-3 flex items-center gap-2 pt-1">
+                                <a
+                                  href={getWhatsAppOfferUrl(cur.title)}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="px-3.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+                                >
+                                  <MessageCircle className="w-3.5 h-3.5" />
+                                  <span>Claim on WhatsApp</span>
+                                </a>
+
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedOfferPreview(cur)}
+                                  className="px-3 py-1.5 rounded-full bg-[#FAF4ED] hover:bg-[#F4EEE7] text-[#2F2622] text-xs font-semibold border border-[#E8D8C6] transition flex items-center gap-1 cursor-pointer"
+                                >
+                                  <Eye className="w-3.5 h-3.5 text-[#A97A55]" />
+                                  <span>View</span>
+                                </button>
+
+                                {isAdminLoggedIn && (
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      await deleteOfferFromServer(cur.id);
+                                      refreshOffers();
+                                    }}
+                                    className="p-1.5 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 transition ml-auto cursor-pointer"
+                                    title="Delete this offer"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                ) : (
+                  /* Empty State / Daily Specials Promo Banner */
+                  <div className="rounded-2xl border border-[#E8D8C6] bg-gradient-to-br from-[#FAF4ED] via-white to-[#F5ECE1] p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-[#A97A55]/10 border border-[#A97A55]/20 flex items-center justify-center text-[#A97A55] shrink-0">
+                      <Sparkles className="w-6 h-6" />
+                    </div>
+                    <div className="flex-1 text-center sm:text-left min-w-0">
+                      <div className="flex items-center justify-center sm:justify-start gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#A97A55] bg-[#A97A55]/10 px-2.5 py-0.5 rounded-full">
+                          Daily Specials
+                        </span>
+                        <span className="text-xs text-stone-500 font-medium">Kitchen & Barista</span>
+                      </div>
+                      <h4 className="font-serif text-base font-bold text-[#2F2622] mt-1 truncate">
+                        Ask for Today&apos;s Chef Combos & Offers
+                      </h4>
+                      <p className="text-xs text-[#5C4A3E] mt-0.5 line-clamp-2 leading-relaxed">
+                        Seasonal burger treats, group combos & promo deals update regularly. Inquire via WhatsApp or counter!
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <a
+                        href="https://wa.me/917200699989?text=Hi%20Cafe%207!%20Could%20you%20please%20share%20today%27s%20special%20offers%20and%20combos%3F"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-4 py-2 rounded-full bg-[#A97A55] hover:bg-[#8e643f] text-white text-xs font-semibold transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        <span>Inquire Offers</span>
+                      </a>
+                      {isAdminLoggedIn && (
+                        <button
+                          type="button"
+                          onClick={() => setIsAdminOpen(true)}
+                          className="px-3 py-2 rounded-full bg-white border border-[#A97A55]/40 text-[#A97A55] text-xs font-bold hover:bg-[#FAF4ED] transition flex items-center gap-1 cursor-pointer"
+                          title="Admin: Upload New Offer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Add Offer</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Search & Dietary Preference Row */}
+          <div className="mt-8 flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-2xl bg-[#F4EEE7] border border-[#E8D8C6]">
+            {/* Dietary filter */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold text-[#2F2622] uppercase tracking-wider mr-1">
+                Filter:
+              </span>
+              <button
+                onClick={() => setDietaryFilter("all")}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer ${
+                  dietaryFilter === "all"
+                    ? "bg-[#2F2622] text-white shadow-sm"
+                    : "bg-white text-[#3B312C] hover:bg-[#E8D8C6]"
+                }`}
+              >
+                All Diets
+              </button>
+              <button
+                onClick={() => setDietaryFilter("veg")}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer flex items-center space-x-1 ${
+                  dietaryFilter === "veg"
+                    ? "bg-emerald-700 text-white shadow-sm"
+                    : "bg-white text-emerald-800 hover:bg-[#E8D8C6]"
+                }`}
+              >
+                <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span>Veg Only 🌱</span>
+              </button>
+              <button
+                onClick={() => setDietaryFilter("non-veg")}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer flex items-center space-x-1 ${
+                  dietaryFilter === "non-veg"
+                    ? "bg-rose-700 text-white shadow-sm"
+                    : "bg-white text-rose-800 hover:bg-[#E8D8C6]"
+                }`}
+              >
+                <div className="w-2 h-2 rounded-full bg-rose-500" />
+                <span>Non-Veg 🍗</span>
+              </button>
+            </div>
+
+            {/* Search box */}
+            <div className="relative w-full md:w-72">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-500" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search burger, latte, tenders..."
+                className="w-full bg-white border border-[#E8D8C6] rounded-full pl-9 pr-8 py-2 text-xs text-[#2F2622] placeholder-stone-400 focus:outline-none focus:border-[#A97A55]"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-[#2F2622]"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Interactive Category Selector Tabs */}
+          <div className="mt-6 flex items-center gap-2 overflow-x-auto pb-3 scrollbar-none">
+            {categoryTabs.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`whitespace-nowrap px-4 py-2.5 rounded-full text-xs font-semibold tracking-wide transition cursor-pointer flex items-center space-x-1.5 ${
+                    isActive
+                      ? "bg-[#2F2622] text-white shadow-md scale-105"
+                      : "bg-white text-[#3B312C] border border-[#E8D8C6] hover:bg-[#F4EEE7]"
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isActive ? "bg-white/20 text-white" : "bg-black/10 text-[#3B312C]"}`}>
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Combos & Extras Quick Banner */}
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+            <div className="bg-[#FAF3EA] border border-[#E8D8C6] rounded-2xl p-3.5 flex items-center justify-between">
+              <div>
+                <span className="font-bold text-[#2F2622] uppercase tracking-wider text-[11px] block">
+                  🍱 Value Combo Deals
+                </span>
+                <span className="text-[#3B312C] text-[11px] mt-0.5 block">
+                  Fries + Soft Drink ₹159 • Fries + Refresher ₹199 • Fries + Lemonade ₹209
+                </span>
+              </div>
+              <button
+                onClick={() => setActiveTab("combos")}
+                className="ml-3 shrink-0 px-3 py-1.5 rounded-full bg-[#A97A55] text-white font-semibold text-[11px] hover:bg-[#8e643f] transition cursor-pointer"
+              >
+                View Combos
+              </button>
+            </div>
+
+            <div className="bg-[#FAF3EA] border border-[#E8D8C6] rounded-2xl p-3.5 flex items-center justify-between">
+              <div>
+                <span className="font-bold text-[#2F2622] uppercase tracking-wider text-[11px] block">
+                  🧀 Delicious Extras
+                </span>
+                <span className="text-[#3B312C] text-[11px] mt-0.5 block">
+                  Extra Cheese (+₹30) • Extra Dipping Sauce (+₹30)
+                </span>
+              </div>
+              <span className="text-[10px] px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-semibold border border-emerald-200">
+                Available with any item
+              </span>
+            </div>
+          </div>
+
+          {/* Rendered Items Grid with Images */}
+          <div className="mt-8 space-y-12">
+            {displayedCategories.length === 0 ? (
+              <div className="text-center py-16 bg-white rounded-3xl border border-[#E8D8C6]">
+                <p className="text-base text-[#3B312C]">
+                  No items match your search or filter.
+                </p>
+                <button
+                  onClick={() => {
+                    setActiveTab("all");
+                    setSearchQuery("");
+                    setDietaryFilter("all");
+                  }}
+                  className="mt-3 px-4 py-2 rounded-full bg-[#A97A55] text-white text-xs font-semibold cursor-pointer"
+                >
+                  Reset Menu
+                </button>
+              </div>
+            ) : (
+              displayedCategories.map((category) => (
+                <div key={category.id} className="space-y-4">
+                  <div className="flex items-center justify-between border-b border-[#E8D8C6] pb-2">
+                    <div>
+                      <h3 className="text-xl sm:text-2xl font-semibold text-[#2F2622] font-serif">
+                        {category.name}
+                      </h3>
+                      {category.description && (
+                        <p className="text-xs text-stone-500 mt-0.5">
+                          {category.description}
+                        </p>
+                      )}
+                    </div>
+                    <span className="text-xs font-semibold text-[#A97A55] bg-[#F4EEE7] px-3 py-1 rounded-full border border-[#E8D8C6]">
+                      {category.items.length} items
+                    </span>
+                  </div>
+
+                  <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {category.items.map((item) => (
+                      <article
+                        key={item.id}
+                        className="overflow-hidden rounded-[1.75rem] border border-[#E8D8C6] bg-white shadow-[0_4px_20px_rgba(47,38,34,0.04)] hover:shadow-xl transition duration-300 flex flex-col justify-between group"
+                      >
+                        <div>
+                          {/* Item Image with Badges */}
+                          <div
+                            onClick={() => setSelectedPreviewItem(item)}
+                            className="relative h-64 sm:h-72 w-full overflow-hidden bg-white border-b border-[#E8D8C6]/50 flex items-center justify-center p-3 cursor-zoom-in"
+                          >
+                            <Image
+                              src={item.image}
+                              alt={item.name}
+                              fill
+                              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                              className="object-contain p-2 group-hover:scale-105 transition-transform duration-300 drop-shadow-xs"
+                            />
+
+                            {/* Veg / Non-Veg Indicator */}
+                            <div className="absolute top-3 left-3 z-10 bg-white/95 backdrop-blur-xs p-1.5 rounded-lg shadow-xs border border-stone-200">
+                              {item.isVeg ? (
+                                <div className="w-4 h-4 rounded-xs border-2 border-emerald-600 flex items-center justify-center">
+                                  <div className="w-2 h-2 rounded-full bg-emerald-600" />
+                                </div>
+                              ) : (
+                                <div className="w-4 h-4 rounded-xs border-2 border-rose-600 flex items-center justify-center">
+                                  <div className="w-2 h-2 rounded-full bg-rose-600" />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Badges on right side */}
+                            <div className="absolute top-3 right-3 z-10 flex flex-col items-end gap-1.5">
+                              {item.badge && (
+                                <span className="rounded-full bg-[#A97A55] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-white shadow-xs">
+                                  {item.badge}
+                                </span>
+                              )}
+                              {item.isSpicy && (
+                                <span className="rounded-full bg-rose-600 px-2.5 py-1 text-[10px] font-bold text-white shadow-xs flex items-center space-x-1">
+                                  <Flame className="w-2.5 h-2.5" />
+                                  <span>Spicy</span>
+                                </span>
+                              )}
+                              {item.pieces && (
+                                <span className="rounded-full bg-white/95 text-[#2F2622] px-2.5 py-1 text-[10px] font-bold shadow-xs border border-stone-200">
+                                  {item.pieces}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Hover zoom hint */}
+                            <div className="absolute bottom-2.5 right-2.5 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white text-[10px] px-2 py-1 rounded-full flex items-center space-x-1 backdrop-blur-xs">
+                              <Eye className="w-3 h-3" />
+                              <span>View Full</span>
+                            </div>
+                          </div>
+
+                          {/* Item Details */}
+                          <div className="p-5">
+                            <div className="flex items-start justify-between gap-3">
+                              <h4 className="text-base font-semibold text-[#2F2622] leading-snug">
+                                {item.name}
+                              </h4>
+                              <span className="text-lg font-bold text-[#A97A55] font-serif whitespace-nowrap">
+                                ₹{item.price}
+                              </span>
+                            </div>
+
+                            {item.description && (
+                              <p className="mt-2 text-xs leading-relaxed text-[#3B312C]/80 line-clamp-2">
+                                {item.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Order Actions: Compact Add to Order + Swiggy + Zomato */}
+                        <div className="p-4 sm:p-5 pt-0 flex items-center gap-1.5 sm:gap-2">
+                          {/* Add to Cart / Order (Smaller) */}
+                          <button
+                            onClick={() => addToCart(item)}
+                            className="flex-1 min-w-0 py-2 px-2.5 sm:px-3 rounded-full bg-[#F4EEE7] hover:bg-[#A97A55] text-[#2F2622] hover:text-white border border-[#E8D8C6] text-[11px] sm:text-xs font-semibold transition flex items-center justify-center gap-1 cursor-pointer shadow-2xs truncate"
+                            title={`Add ${item.name} to order`}
+                          >
+                            <Plus className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                            <span className="truncate">Add • ₹{item.price}</span>
+                          </button>
+
+                          {/* Swiggy Button */}
+                          <a
+                            href="https://www.swiggy.com/city/chennai/cafe-7-porur-rest1425555"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="py-2 px-2.5 sm:px-3 rounded-full bg-[#FFF5ED] hover:bg-[#FC8019] text-[#E46000] hover:text-white border border-[#FED7AA] hover:border-[#FC8019] text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer shadow-2xs shrink-0 group/swiggy"
+                            title={`Order ${item.name} on Swiggy`}
+                            aria-label={`Order ${item.name} on Swiggy`}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#FC8019] group-hover/swiggy:bg-white transition-colors" />
+                            <span>Swiggy</span>
+                          </a>
+
+                          {/* Zomato Button */}
+                          <a
+                            href="https://www.zomato.com/chennai/cafe-7-valasaravakkam/order"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="py-2 px-2.5 sm:px-3 rounded-full bg-[#FFF1F2] hover:bg-[#E23744] text-[#E23744] hover:text-white border border-[#FECDD3] hover:border-[#E23744] text-[11px] sm:text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer shadow-2xs shrink-0 group/zomato"
+                            title={`Order ${item.name} on Zomato`}
+                            aria-label={`Order ${item.name} on Zomato`}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#E23744] group-hover/zomato:bg-white transition-colors" />
+                            <span className="italic">zomato</span>
+                          </a>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        {/* About Cafe 7 Section */}
+        <section id="about-section" className="bg-[#F4EEE7] py-20 border-t border-[#E8D8C6]">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="grid items-center gap-12 lg:grid-cols-[1fr_1fr]">
+              <div className="overflow-hidden rounded-[2rem] border border-[#E8D8C6] bg-white p-3">
+                <div className="relative h-[420px] overflow-hidden rounded-[1.5rem]">
+                  <Image
+                    src="/images/items/spanish-latte.webp"
+                    alt="Cafe 7 handcrafted specialty brew"
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#A97A55]">
+                  About Cafe 7
+                </p>
+                <h2 className="mt-3 text-3xl font-semibold tracking-tight text-[#2F2622] sm:text-4xl font-serif">
+                  Welcome to Cafe 7
+                </h2>
+                <p className="mt-4 text-base leading-7 text-[#3B312C]">
+                  At Cafe 7, we believe great food and coffee bring people together. Built on a passion for freshness, quality, and exceptional hospitality, Cafe 7 is a place where every visit feels welcoming and memorable.
+                </p>
+                <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-xl border border-[#E8D8C6] bg-white px-4 py-2.5 text-xs font-semibold text-[#3B312C]">
+                    ✓ Freshly Prepared Food
+                  </div>
+                  <div className="rounded-xl border border-[#E8D8C6] bg-white px-4 py-2.5 text-xs font-semibold text-[#3B312C]">
+                    ✓ Hygienic Food Handling
+                  </div>
+                  <div className="rounded-xl border border-[#E8D8C6] bg-white px-4 py-2.5 text-xs font-semibold text-[#3B312C]">
+                    ✓ 100% Quality Ingredients
+                  </div>
+                  <div className="rounded-xl border border-[#E8D8C6] bg-white px-4 py-2.5 text-xs font-semibold text-[#3B312C]">
+                    ✓ Artisanal Signature Coffee
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Visit & Contact Section */}
+        <section id="contact-section" className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+          <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr]">
+            <div className="rounded-[2rem] border border-[#E8D8C6] bg-[#F4EEE7] p-8">
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#A97A55]">
+                Visit Cafe 7
+              </p>
+              <h2 className="mt-3 text-3xl font-semibold text-[#2F2622] font-serif">
+                Your neighborhood café in Chennai
+              </h2>
+
+              <div className="mt-6 space-y-5 text-[#3B312C] text-sm">
+                <div className="flex gap-3">
+                  <MapPin className="w-5 h-5 text-[#A97A55] shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold text-[#2F2622]">Address</p>
+                    <p className="mt-1 leading-relaxed">
+                      74, Radha Ave Main Rd, Velan Nagar, Valasaravakkam, Chennai, Tamil Nadu 600087
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <Phone className="w-5 h-5 text-[#A97A55] shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold text-[#2F2622]">Phone</p>
+                    <a href="tel:+917200699989" className="mt-1 block text-[#A97A55] font-semibold">
+                      +91 7200699989
+                    </a>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <Clock3 className="w-5 h-5 text-[#A97A55] shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold text-[#2F2622]">Opening Hours</p>
+                    <div className="mt-1 space-y-1 text-xs">
+                      <p>Monday – Friday: 8:00 AM – 10:00 PM</p>
+                      <p>Saturday: 8:00 AM – 11:00 PM</p>
+                      <p>Sunday: 9:00 AM – 9:00 PM</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 flex flex-wrap gap-3">
+                <a
+                  target="_blank"
+                  rel="noreferrer"
+                  href="https://maps.app.goo.gl/2rdQ6sEXDj48jW5s9"
+                  className="rounded-full bg-[#A97A55] px-6 py-2.5 text-xs font-semibold text-white transition hover:bg-[#8e643f]"
+                >
+                  Open in Google Maps
+                </a>
+                <a
+                  target="_blank"
+                  rel="noreferrer"
+                  href="https://wa.me/917200699989"
+                  className="rounded-full border border-[#A97A55] px-6 py-2.5 text-xs font-semibold text-[#A97A55] hover:bg-white transition"
+                >
+                  Chat on WhatsApp
+                </a>
+              </div>
+            </div>
+
+            {/* Embedded Google Map */}
+            <div className="overflow-hidden rounded-[2rem] border border-[#E8D8C6] bg-white p-2 shadow-sm">
+              <iframe
+                src="https://www.google.com/maps?q=74,%20Radha%20Ave%20Main%20Rd,%20Velan%20Nagar,%20Valasaravakkam,%20Chennai,%20Tamil%20Nadu%20600087&output=embed"
+                title="Cafe 7 location"
+                className="h-[380px] w-full rounded-[1.5rem] border-0"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* Scanned Menu Card Modal */}
+      {activeMenuCard && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+          <div className="bg-white border border-[#E8D8C6] max-w-4xl w-full rounded-3xl p-6 shadow-2xl relative my-6">
+            <button
+              onClick={() => setActiveMenuCard(null)}
+              className="absolute top-4 right-4 text-stone-400 hover:text-stone-800 p-2 rounded-full hover:bg-stone-100 cursor-pointer z-10"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center justify-between mb-4 pr-12">
+              <div>
+                <h3 className="text-xl font-semibold font-serif text-[#2F2622]">
+                  Official Café 7 Main Menu Card
+                </h3>
+                <p className="text-xs text-[#3B312C]">
+                  Burgers • Fries • Coffee • Shakes • Mojitos • Refreshers • Wraps • Combos
+                </p>
+              </div>
+            </div>
+
+            <div className="relative w-full h-[70vh] rounded-2xl overflow-hidden bg-stone-900 border border-stone-200">
+              <Image
+                src="/images/menu-card-new.png"
+                alt="Café 7 Print Card Scan"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+
+            <div className="mt-3 text-center text-xs text-stone-500">
+              Verified print resolution card. Every digital item and price on this site matches this exact menu.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full-Size Image Preview Lightbox */}
+      {selectedPreviewItem && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-[#E8D8C6] max-w-3xl w-full rounded-3xl p-6 shadow-2xl relative my-6">
+            <button
+              onClick={() => setSelectedPreviewItem(null)}
+              className="absolute top-4 right-4 text-stone-400 hover:text-stone-800 p-2 rounded-full hover:bg-stone-100 cursor-pointer z-10"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-start justify-between mb-4 pr-12">
+              <div>
+                <div className="flex items-center space-x-2">
+                  {selectedPreviewItem.isVeg ? (
+                    <div className="w-3.5 h-3.5 rounded-xs border-2 border-emerald-600 flex items-center justify-center">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                    </div>
+                  ) : (
+                    <div className="w-3.5 h-3.5 rounded-xs border-2 border-rose-600 flex items-center justify-center">
+                      <div className="w-1.5 h-1.5 rounded-full bg-rose-600" />
+                    </div>
+                  )}
+                  <h3 className="text-xl font-semibold font-serif text-[#2F2622]">
+                    {selectedPreviewItem.name}
+                  </h3>
+                </div>
+                {selectedPreviewItem.description && (
+                  <p className="text-xs text-[#3B312C]/80 mt-1 max-w-xl">
+                    {selectedPreviewItem.description}
+                  </p>
+                )}
+              </div>
+              <span className="text-xl font-bold text-[#A97A55] font-serif whitespace-nowrap">
+                ₹{selectedPreviewItem.price}
+              </span>
+            </div>
+
+            <div className="relative w-full h-[65vh] rounded-2xl overflow-hidden bg-[#FAF7F2] border border-[#E8D8C6]/50 p-2 flex items-center justify-center">
+              <Image
+                src={selectedPreviewItem.image}
+                alt={selectedPreviewItem.name}
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+
+            <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <span className="text-xs text-stone-500 hidden sm:inline">
+                100% Uncropped Original Presentation
+              </span>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <button
+                  onClick={() => {
+                    addToCart(selectedPreviewItem);
+                    setSelectedPreviewItem(null);
+                  }}
+                  className="flex-1 sm:flex-none px-4 py-2 rounded-full bg-[#A97A55] hover:bg-[#8e643f] text-white text-xs font-semibold flex items-center justify-center space-x-1.5 cursor-pointer shadow-sm transition"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add to Order • ₹{selectedPreviewItem.price}</span>
+                </button>
+
+                <a
+                  href="https://www.swiggy.com/city/chennai/cafe-7-porur-rest1425555"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3.5 py-2 rounded-full bg-[#FFF5ED] hover:bg-[#FC8019] text-[#E46000] hover:text-white border border-[#FED7AA] hover:border-[#FC8019] text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs group/swiggy"
+                  title="Order on Swiggy"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#FC8019] group-hover/swiggy:bg-white transition-colors" />
+                  <span>Swiggy</span>
+                  <ExternalLink className="w-3 h-3 opacity-70" />
+                </a>
+
+                <a
+                  href="https://www.zomato.com/chennai/cafe-7-valasaravakkam/order"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3.5 py-2 rounded-full bg-[#FFF1F2] hover:bg-[#E23744] text-[#E23744] hover:text-white border border-[#FECDD3] hover:border-[#E23744] text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs group/zomato"
+                  title="Order on Zomato"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#E23744] group-hover/zomato:bg-white transition-colors" />
+                  <span className="italic">zomato</span>
+                  <ExternalLink className="w-3 h-3 opacity-70" />
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cart / Order Drawer */}
+      {isCartOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex justify-end">
+          <div className="w-full max-w-md bg-white border-l border-[#E8D8C6] h-full flex flex-col justify-between shadow-2xl p-6 overflow-y-auto">
+            <div>
+              <div className="flex items-center justify-between border-b border-[#E8D8C6] pb-4">
+                <div className="flex items-center space-x-2">
+                  <ShoppingBag className="w-5 h-5 text-[#A97A55]" />
+                  <h3 className="text-lg font-semibold font-serif text-[#2F2622]">
+                    Your Order
+                  </h3>
+                  <span className="text-xs bg-[#F4EEE7] text-[#2F2622] font-semibold px-2 py-0.5 rounded-full">
+                    {cartItemCount} items
+                  </span>
+                </div>
+                <button
+                  onClick={() => setIsCartOpen(false)}
+                  className="p-1.5 rounded-full text-stone-400 hover:text-stone-700 hover:bg-[#F4EEE7] cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="py-4 space-y-3">
+                {cart.length === 0 ? (
+                  <div className="py-20 text-center text-stone-400">
+                    <UtensilsCrossed className="w-10 h-10 mx-auto text-stone-300 mb-2" />
+                    <p className="text-sm font-medium text-stone-600">
+                      Your bag is empty
+                    </p>
+                    <p className="text-xs text-stone-400 mt-1">
+                      Click &quot;Add&quot; on any item from the menu to start ordering.
+                    </p>
+                  </div>
+                ) : (
+                  cart.map(({ item, quantity }) => (
+                    <div
+                      key={item.id}
+                      className="p-3.5 rounded-2xl bg-[#F4EEE7] border border-[#E8D8C6] flex items-center justify-between gap-3"
+                    >
+                      <div className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-[#E8D8C6]">
+                        <Image
+                          src={item.image}
+                          alt={item.name}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-1.5">
+                          {item.isVeg ? (
+                            <div className="w-3 h-3 rounded-xs border border-emerald-600 flex items-center justify-center p-0.5 shrink-0">
+                              <div className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                            </div>
+                          ) : (
+                            <div className="w-3 h-3 rounded-xs border border-rose-600 flex items-center justify-center p-0.5 shrink-0">
+                              <div className="w-1.5 h-1.5 rounded-full bg-rose-600" />
+                            </div>
+                          )}
+                          <h4 className="text-xs font-semibold text-[#2F2622] line-clamp-1">
+                            {item.name}
+                          </h4>
+                        </div>
+                        <span className="text-xs font-bold text-[#A97A55] mt-1 block">
+                          ₹{item.price * quantity}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center space-x-2 bg-white px-2 py-1 rounded-full border border-[#E8D8C6]">
+                        <button
+                          onClick={() => removeFromCart(item.id)}
+                          className="text-stone-500 hover:text-[#2F2622] cursor-pointer"
+                        >
+                          <Minus className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="text-xs font-bold text-[#2F2622] px-1">
+                          {quantity}
+                        </span>
+                        <button
+                          onClick={() => addToCart(item)}
+                          className="text-[#A97A55] hover:text-[#2F2622] cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {cart.length > 0 && (
+              <div className="border-t border-[#E8D8C6] pt-4 space-y-4">
+                <div className="space-y-1.5 text-xs text-[#3B312C]">
+                  <div className="flex justify-between">
+                    <span>Items Total</span>
+                    <span className="font-semibold">₹{cartTotal}</span>
+                  </div>
+                  <div className="flex justify-between text-stone-500">
+                    <span>Applicable Taxes</span>
+                    <span>Exclusive</span>
+                  </div>
+                  <div className="flex justify-between text-base font-bold text-[#2F2622] pt-2 border-t border-[#E8D8C6]">
+                    <span>Total Estimate</span>
+                    <span className="text-[#A97A55] font-serif text-lg">
+                      ₹{cartTotal}
+                    </span>
+                  </div>
+                </div>
+
+                <a
+                  href={getWhatsAppOrderUrl()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-3.5 rounded-full bg-[#A97A55] hover:bg-[#8e643f] text-white font-semibold text-xs flex items-center justify-center space-x-2 shadow-sm transition cursor-pointer"
+                >
+                  <span>Send Order to WhatsApp (+91 7200699989)</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+
+                <button
+                  onClick={() => setCart([])}
+                  className="w-full text-center text-xs text-stone-400 hover:text-stone-600 cursor-pointer"
+                >
+                  Clear order bag
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Footer */}
+      <footer className="border-t border-[#E8D8C6] bg-[#F4EEE7]">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[1.2fr_0.8fr_0.8fr] lg:px-8">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <div className="relative w-8 h-8 shrink-0">
+                <Image
+                  src="/images/cafe7-logo.webp"
+                  alt="Cafe 7 Logo"
+                  fill
+                  className="object-contain"
+                />
+              </div>
+              <p className="text-xl font-semibold tracking-[0.25em] text-[#2F2622] font-serif">
+                CAFE 7
+              </p>
+            </div>
+            <p className="mt-4 max-w-md text-base leading-8 text-[#3B312C]">
+              Cafe 7 – Freshly Crafted. Served with Care.
+            </p>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-semibold text-[#2F2622]">Quick Links</h3>
+            <div className="mt-4 flex flex-col gap-3 text-sm text-[#3B312C]">
+              <Link className="hover:text-[#A97A55]" href="/">
+                Home
+              </Link>
+              <a className="hover:text-[#A97A55]" href="#menu-section">
+                Menu ({totalItemCount})
+              </a>
+              <a className="hover:text-[#A97A55] font-semibold text-[#A97A55]" href="#offers">
+                Offers & Specials
+              </a>
+              <a className="hover:text-[#A97A55]" href="#about-section">
+                About
+              </a>
+              <a className="hover:text-[#A97A55]" href="#contact-section">
+                Contact
+              </a>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-semibold text-[#2F2622]">Connect</h3>
+            <div className="mt-4 flex flex-col gap-3 text-sm text-[#3B312C]">
+              <a
+                href="https://www.instagram.com/thecafe7.in"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 hover:text-[#A97A55]"
+              >
+                <BadgeCheck className="w-4 h-4 text-[#A97A55]" />
+                <span>Instagram</span>
+              </a>
+              <a
+                href="https://www.facebook.com/share/1GuB7BGgk1/"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 hover:text-[#A97A55]"
+              >
+                <MessageCircleMore className="w-4 h-4 text-[#A97A55]" />
+                <span>Facebook</span>
+              </a>
+              <a
+                href="tel:+917200699989"
+                className="inline-flex items-center gap-2 hover:text-[#A97A55]"
+              >
+                <Phone className="w-4 h-4 text-[#A97A55]" />
+                <span>+91 7200699989</span>
+              </a>
+              <a
+                href="https://maps.app.goo.gl/2rdQ6sEXDj48jW5s9"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 hover:text-[#A97A55]"
+              >
+                <MapPin className="w-4 h-4 text-[#A97A55]" />
+                <span>74, Radha Ave Main Rd, Valasaravakkam</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t border-[#E8D8C6] px-4 py-5 text-xs text-[#3B312C] sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+          <span>© {new Date().getFullYear()} Cafe 7. All rights reserved.</span>
+
+          {/* Discreet Admin Login Trigger at down end of page */}
+          <button
+            onClick={() => setIsAdminOpen(true)}
+            className="px-3.5 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 border border-stone-300 text-[#2F2622] transition cursor-pointer flex items-center space-x-1.5 shadow-xs"
+            title="Staff Admin Access"
+            aria-label="Staff Admin Login"
+          >
+            <Lock className="w-3.5 h-3.5 text-[#A97A55]" />
+            <span className="text-xs font-semibold text-stone-800">
+              Admin Login
+            </span>
+          </button>
+        </div>
+      </footer>
+
+      {/* Full Offer Poster Preview Lightbox Modal */}
+      {selectedOfferPreview && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={() => setSelectedOfferPreview(null)}
+        >
+          <div
+            className="relative max-w-2xl w-full bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-[#E8D8C6] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setSelectedOfferPreview(null)}
+              className="absolute top-4 right-4 text-stone-400 hover:text-stone-800 p-2 rounded-full hover:bg-stone-100 cursor-pointer z-10 transition"
+              aria-label="Close poster preview"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="mb-4 pr-12">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#A97A55]">
+                {selectedOfferPreview.badge || "Special Promotion"}
+              </span>
+              <h3 className="text-xl sm:text-2xl font-bold font-serif text-[#2F2622]">
+                {selectedOfferPreview.title}
+              </h3>
+            </div>
+
+            <div className="relative w-full max-h-[65vh] rounded-2xl overflow-hidden bg-stone-900 border border-stone-200 flex items-center justify-center">
+              <img
+                src={selectedOfferPreview.image}
+                alt={selectedOfferPreview.title}
+                className="max-h-[65vh] w-full object-contain"
+              />
+            </div>
+
+            <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <p className="text-xs text-stone-600 flex-1 leading-relaxed">
+                {selectedOfferPreview.description}
+              </p>
+              <a
+                href={getWhatsAppOfferUrl(selectedOfferPreview.title)}
+                target="_blank"
+                rel="noreferrer"
+                className="shrink-0 px-5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center space-x-1.5 shadow-sm"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>Claim Offer on WhatsApp</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Manager Modal */}
+      <AdminManager
+        isOpen={isAdminOpen}
+        onClose={() => setIsAdminOpen(false)}
+        onOffersChange={(updated) => {
+          if (updated) {
+            setOffers(updated);
+          } else {
+            refreshOffers();
+          }
+        }}
+      />
+    </div>
   );
 }

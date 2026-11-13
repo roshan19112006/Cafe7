@@ -13,7 +13,7 @@ import {
   Check,
 } from 'lucide-react';
 import { MenuItem } from '@/types/menu';
-import { RESTAURANT_INFO } from '@/data/menu';
+import { RESTAURANT_INFO } from '@/data/qrMenu';
 
 interface FoodModalProps {
   item: MenuItem | null;

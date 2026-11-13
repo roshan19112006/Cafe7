@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { Flame, Star, ZoomIn, Sparkles } from 'lucide-react';
 import { MenuItem } from '@/types/menu';
-import { RESTAURANT_INFO } from '@/data/menu';
+import { RESTAURANT_INFO } from '@/data/qrMenu';
 
 interface MenuCardProps {
   item: MenuItem;

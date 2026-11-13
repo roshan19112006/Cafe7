@@ -1,64 +1,29 @@
-import type { Metadata, Viewport } from 'next';
-import { Inter, Outfit } from 'next/font/google';
-import './globals.css';
-import { RESTAURANT_INFO } from '@/data/menu';
+import type { Metadata } from "next";
+import { Inter, Playfair_Display } from "next/font/google";
+import "./globals.css";
 
 const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-  display: 'swap',
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
 });
 
-const outfit = Outfit({
-  subsets: ['latin'],
-  variable: '--font-outfit',
-  display: 'swap',
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-playfair",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: `${RESTAURANT_INFO.name} — QR Digital Dine-in Menu`,
-  description: `Browse the official digital menu for ${RESTAURANT_INFO.name} (${RESTAURANT_INFO.location}). Gourmet burgers, crispy wings, wraps, thick milkshakes, and barista coffee.`,
-  keywords: [
-    'Cafe 7',
-    'Cafe 7 menu',
-    'Cafe 7 Chennai',
-    'Valasaravakkam cafe',
-    'QR code menu',
-    'Digital dine-in menu',
-    'Burgers',
-    'Wings',
-    'Coffee',
-  ],
-  authors: [{ name: RESTAURANT_INFO.name }],
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://cafe7.vercel.app"),
+  title: "Cafe 7 | Freshly Crafted. Served with Care.",
+  description: "Cafe 7 offers premium burgers, coffee, wraps, wings and comfort food in a refined café setting in Chennai.",
+  keywords: ["Cafe 7", "coffee", "burgers", "Chennai", "premium cafe", "wings", "fries"],
   openGraph: {
-    title: `${RESTAURANT_INFO.name} — QR Digital Menu`,
-    description: RESTAURANT_INFO.tagline,
-    url: RESTAURANT_INFO.website,
-    siteName: RESTAURANT_INFO.name,
-    images: [
-      {
-        url: RESTAURANT_INFO.logoUrl,
-        width: 400,
-        height: 400,
-        alt: `${RESTAURANT_INFO.name} Logo`,
-      },
-    ],
-    locale: 'en_IN',
-    type: 'website',
-  },
-  icons: {
-    icon: RESTAURANT_INFO.logoUrl,
-    apple: RESTAURANT_INFO.logoUrl,
-  },
-};
-
-export const viewport: Viewport = {
-  themeColor: '#090a0f',
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 5,
-  userScalable: true,
-  viewportFit: 'cover',
+    title: "Cafe 7 — Premium Burgers • Fries • Coffee",
+    description: "Freshly Crafted. Served with Care. Explore the newly updated menu with burgers, coffee and desserts.",
+    images: ["/images/hero_burger.webp"],
+  }
 };
 
 export default function RootLayout({
@@ -67,8 +32,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${outfit.variable} dark`}>
-      <body className="min-h-screen bg-[#090a0f] text-[#f4f5f8] font-sans antialiased selection:bg-[#f3b73e]/30 selection:text-white">
+    <html lang="en" className={`h-full scroll-smooth ${inter.variable} ${playfair.variable}`}>
+      <body className="min-h-full bg-[#FBF8F4] text-[#3B312C] antialiased">
         {children}
       </body>
     </html>

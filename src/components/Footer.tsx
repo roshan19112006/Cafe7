@@ -10,7 +10,7 @@ import {
   ShieldCheck,
   QrCode,
 } from 'lucide-react';
-import { RESTAURANT_INFO } from '@/data/menu';
+import { RESTAURANT_INFO } from '@/data/qrMenu';
 
 interface FooterProps {
   onOpenQr: () => void;

@@ -11,7 +11,7 @@ import {
   ExternalLink,
   Sparkles,
 } from 'lucide-react';
-import { RESTAURANT_INFO } from '@/data/menu';
+import { RESTAURANT_INFO } from '@/data/qrMenu';
 
 interface QrCodeModalProps {
   isOpen: boolean;

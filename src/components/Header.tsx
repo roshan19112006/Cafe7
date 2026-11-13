@@ -3,7 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import { QrCode, MapPin, Clock, Phone, UtensilsCrossed } from 'lucide-react';
-import { RESTAURANT_INFO } from '@/data/menu';
+import { RESTAURANT_INFO } from '@/data/qrMenu';
 
 interface HeaderProps {
   onOpenQr: () => void;
