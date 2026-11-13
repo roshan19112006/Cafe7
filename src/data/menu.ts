@@ -42,7 +42,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "chicken-crunch-burgers",
         price: 259,
         isVeg: false,
-        image: "/images/items/classic-big-crunch-burger.webp",
+        image: "/images/hero_burger.webp",
         badge: "Popular",
         description: "Golden fried crispy chicken breast patty, fresh iceberg lettuce, house mayo on toasted brioche."
       },
@@ -72,7 +72,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "chicken-crunch-burgers",
         price: 289,
         isVeg: false,
-        image: "/images/items/honey-queen-burger.webp",
+        image: "/images/hero_burger.webp",
         description: "Crispy chicken glazed in sweet hot honey mustard, crispy slaw and creamy cheese."
       },
       {
@@ -81,7 +81,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "chicken-crunch-burgers",
         price: 299,
         isVeg: false,
-        image: "/images/items/k-pop-sesame-burger.webp",
+        image: "/images/hero_burger.webp",
         badge: "Trending",
         description: "Korean glazed crunchy chicken patty topped with toasted sesame seeds and tangy kimchi slaw."
       },
@@ -126,7 +126,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "grilled-chicken-burgers",
         price: 299,
         isVeg: false,
-        image: "/images/items/double-stack-grilled-burger.webp",
+        image: "/images/items/signature-grilled-burger.webp",
         badge: "Heavy Hitter",
         description: "Twin grilled chicken patties, double cheddar slice, and Café 7 signature smokey sauce."
       },
@@ -137,7 +137,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         price: 299,
         isVeg: false,
         isSpicy: true,
-        image: "/images/items/double-stack-spicy-grilled-burger.webp",
+        image: "/images/items/spicy-grilled-burger.webp",
         description: "Double flame-grilled spicy patties loaded with spicy jalapeño sauce and Monterey cheese."
       }
     ]
@@ -153,7 +153,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "veg-burgers",
         price: 209,
         isVeg: true,
-        image: "/images/items/gardern-crunch-burger.webp",
+        image: "/images/items/spicy-gardern-burger.webp",
         description: "Crisp seasoned garden vegetable patty, crisp lettuce, sliced tomatoes and tangy herb mayo."
       },
       {
@@ -209,7 +209,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "wraps",
         price: 239,
         isVeg: false,
-        image: "/images/items/goldern-honey-wrap.webp",
+        image: "/images/items/wildfire-chipotle-wrap.webp",
         description: "Crispy golden chicken tenders, honey mustard sauce, shredded iceberg and cheddar."
       },
       {
@@ -253,7 +253,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "appetizers",
         price: 199,
         isVeg: true,
-        image: "/images/items/jalapeno-cheese-poppers.webp",
+        image: "/images/jalapeno-cheese-poppers.jpeg",
         badge: "Hot & Cheesy",
         description: "Golden crumbed bite-sized bites bursting with molten cheddar and spicy jalapeño bits."
       },
@@ -263,7 +263,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "appetizers",
         price: 249,
         isVeg: false,
-        image: "/images/items/chicken-nuggets.webp",
+        image: "/images/chicken-nuggets.jpeg",
         badge: "Kids & All",
         description: "Tender minced chicken breast nuggets fried to deep golden crunch, served with tangy dip."
       },
@@ -273,7 +273,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "appetizers",
         price: 249,
         isVeg: false,
-        image: "/images/items/chicken-cheese-balls.webp",
+        image: "/images/chicken-cheese-balls.jpeg",
         badge: "Must Try",
         description: "Crispy seasoned chicken spheres oozing with molten gooey mozzarella cheese."
       },
@@ -284,7 +284,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         price: 219,
         isVeg: false,
         isSpicy: true,
-        image: "/images/items/fire-crackers-chicken-bites.webp",
+        image: "/images/firecracker-chicken-bites.jpeg",
         badge: "Fiery",
         description: "Crunchy bite-sized chicken pops tossed in a fiery, lip-smacking firecracker seasoning."
       },
@@ -294,7 +294,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "appetizers",
         price: 229,
         isVeg: false,
-        image: "/images/items/honey-glaze-popcorn.webp",
+        image: "/images/honey-blaze-popcorn.jpeg",
         description: "Crispy chicken popcorn tossed in rich sweet honey glaze with mild smoky spices."
       },
       {
@@ -321,7 +321,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "chicken-wings",
         price: 289,
         isVeg: false,
-        image: "/images/items/fire-kiss-bbq-wings.webp",
+        image: "/images/fire-kiss-bbq-wings.jpeg",
         badge: "BBQ Classic",
         description: "Crispy chicken wings generously coated in sweet, smoky and thick fire-kissed BBQ sauce."
       },
@@ -332,7 +332,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         price: 299,
         isVeg: false,
         isSpicy: true,
-        image: "/images/items/volcano-peri-peri-wings.webp",
+        image: "/images/volcano-wings.jpeg",
         badge: "Hot Favorite",
         description: "Jumbo wings tossed in hot African bird's eye peri-peri seasoning and citrus herb dust."
       },
@@ -343,7 +343,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         price: 299,
         isVeg: false,
         isSpicy: true,
-        image: "/images/items/korean-hot-wings.webp",
+        image: "/images/korean-hot-wings.jpeg",
         badge: "Sweet & Spicy",
         description: "Authentic gochujang glazed sticky wings garnished with toasted sesame seeds and spring onion."
       },
@@ -354,7 +354,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         price: 299,
         isVeg: false,
         isSpicy: true,
-        image: "/images/items/red-blast-hot-wings1.webp",
+        image: "/images/red-blast-wings.jpeg",
         badge: "Extra Hot",
         description: "Blistering hot buffalo-style red blast glaze that delivers an unforgettable kick."
       }
@@ -371,7 +371,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "chicken-tenders",
         price: 239,
         isVeg: false,
-        image: "/images/items/chicken-tender-2-pcs.webp",
+        image: "/images/items/texas-bbq-tender.webp",
         pieces: "2 Pieces + Fries",
         description: "Hand-breaded whole white chicken breast tenders served hot with crispy fries & choice of dip."
       },
@@ -381,7 +381,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "chicken-tenders",
         price: 239,
         isVeg: false,
-        image: "/images/items/chicken-tender-3-pcs.webp",
+        image: "/images/items/seoul-spice-tender.webp",
         pieces: "3 Pieces",
         description: "Tender, crispy whole white chicken breast strips served hot with signature dip."
       },
@@ -391,7 +391,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "chicken-tenders",
         price: 299,
         isVeg: false,
-        image: "/images/items/chicken-tender-4-pcs.webp",
+        image: "/images/items/texas-bbq-tender.webp",
         pieces: "4 Pieces",
         description: "4 jumbo crispy whole chicken tenders paired with our signature creamy dip."
       },
@@ -423,7 +423,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         price: 319,
         isVeg: false,
         isSpicy: true,
-        image: "/images/items/cajun-spice-tender.webp",
+        image: "/images/items/texas-bbq-tender.webp",
         pieces: "4 Pieces",
         description: "Deep south Louisiana Cajun dusted crispy tenders bursting with bold aromatics."
       },
@@ -434,7 +434,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         price: 319,
         isVeg: false,
         isSpicy: true,
-        image: "/images/items/cafe-7-signature-spicy-tender.webp",
+        image: "/images/items/seoul-spice-tender.webp",
         pieces: "4 Pieces",
         badge: "House Special",
         description: "Drizzled with our proprietary house-made spiced ranch and signature seasoning."
@@ -452,7 +452,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "fries",
         price: 129,
         isVeg: true,
-        image: "/images/items/classic-fries.webp",
+        image: "/images/items/nashville-fries.webp",
         description: "Crisp, golden shoestring potatoes salted to perfection."
       },
       {
@@ -481,7 +481,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "fries",
         price: 189,
         isVeg: true,
-        image: "/images/items/cheesy-melt-fries.webp",
+        image: "/images/items/nashville-fries.webp",
         badge: "Cheesy Favorite",
         description: "Golden shoestring crispy fries smothered with molten warm cheddar cheese sauce."
       }
@@ -498,7 +498,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "loaded-fries",
         price: 199,
         isVeg: true,
-        image: "/images/items/commando-loaded-fries.webp",
+        image: "/images/items/volcano-spicy-loaded-fries.webp",
         description: "Fries loaded with liquid cheese, sliced jalapeños, olives, and Café 7 secret spicy sauce."
       },
       {
@@ -507,7 +507,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "loaded-fries",
         price: 279,
         isVeg: false,
-        image: "/images/items/battlefield-loaded-fries.webp",
+        image: "/images/items/volcano-spicy-loaded-fries.webp",
         badge: "Carnivore Feast",
         description: "Heaped with shredded seasoned chicken, smoked bacon bits, melted cheddar, and ranch."
       },
@@ -534,7 +534,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "hot-cold-coffee",
         price: 119,
         isVeg: true,
-        image: "/images/items/americano.webp",
+        image: "/images/classic-latte.jpeg",
         badge: "Pure Brew",
         description: "Rich freshly pulled double espresso poured over hot water with a golden layer of crema."
       },
@@ -544,7 +544,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "hot-cold-coffee",
         price: 139,
         isVeg: true,
-        image: "/images/items/latte.webp",
+        image: "/images/classic-latte.jpeg",
         description: "Smooth espresso poured over creamy steamed milk with a silky layer of microfoam."
       },
       {
@@ -553,7 +553,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "hot-cold-coffee",
         price: 139,
         isVeg: true,
-        image: "/images/items/cappuccino.webp",
+        image: "/images/classic-latte.jpeg",
         badge: "Barista Classic",
         description: "Equal parts rich espresso, steamed velvety milk, and thick frothy foam dusted with dark cocoa."
       },
@@ -563,7 +563,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "hot-cold-coffee",
         price: 179,
         isVeg: true,
-        image: "/images/items/vanilla-velvet-latte.webp",
+        image: "/images/vanilla-velvet-latte.jpeg",
         badge: "Signature",
         description: "Madagascar vanilla infused velvety milk combined with our medium dark roast espresso."
       },
@@ -583,7 +583,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "hot-cold-coffee",
         price: 189,
         isVeg: true,
-        image: "/images/items/irish-latte.webp",
+        image: "/images/irish-latte.png",
         badge: "Staff Pick",
         description: "Non-alcoholic smooth Irish cream syrup folded into dark espresso and topped with cocoa."
       },
@@ -593,7 +593,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "hot-cold-coffee",
         price: 199,
         isVeg: true,
-        image: "/images/items/spanish-latte.webp",
+        image: "/images/spanish-latte.jpeg",
         badge: "Bestseller",
         description: "Condensed milk base layered with espresso and textured milk for an ultra silky sweet finish."
       },
@@ -613,7 +613,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "hot-cold-coffee",
         price: 199,
         isVeg: true,
-        image: "/images/items/hazelnut-latte.webp",
+        image: "/images/classic-latte.jpeg",
         description: "Aromatic toasted hazelnut notes harmonized with smooth espresso and frothy milk."
       },
       {
@@ -622,7 +622,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "hot-cold-coffee",
         price: 199,
         isVeg: true,
-        image: "/images/items/coconut-latte.webp",
+        image: "/images/classic-latte.jpeg",
         description: "Creamy coconut notes paired with espresso for a tropical coffee experience."
       },
       {
@@ -631,7 +631,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "hot-cold-coffee",
         price: 199,
         isVeg: true,
-        image: "/images/items/caramel-latte.webp",
+        image: "/images/caramel-latte.jpeg",
         badge: "Featured",
         description: "Buttery English caramel syrup swirled into rich espresso and steamed velvety milk."
       }
@@ -648,7 +648,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "iced-tea",
         price: 149,
         isVeg: true,
-        image: "/images/items/classic-lemon-iced-tea.webp",
+        image: "/images/items/peach-breeze-iced-tea.webp",
         badge: "Classic",
         description: "Slow brewed premium tea shaken with fresh citrus lemon and ice cubes."
       },
@@ -687,7 +687,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "iced-tea",
         price: 179,
         isVeg: true,
-        image: "/images/items/mango-tango-iced-tea.webp",
+        image: "/images/items/peach-breeze-iced-tea.webp",
         description: "Tropical Alphonso mango puree shaken with chilled tea and sweet fruit accents."
       }
     ]
@@ -731,7 +731,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "signature-milk-shakes",
         price: 199,
         isVeg: true,
-        image: "/images/items/midnight-chocolate-shake.webp",
+        image: "/images/items/salted-caramel-shake.webp",
         badge: "Chocoholic",
         description: "Intense dark Dutch cocoa and rich fudge blended into a velvety chocolate shake."
       },
@@ -741,7 +741,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "signature-milk-shakes",
         price: 199,
         isVeg: true,
-        image: "/images/items/mango-paradise-shake.webp",
+        image: "/images/items/vanilla-velvet-milkshake.webp",
         description: "Luscious golden mango pulp blended with rich vanilla cream and crushed ice."
       },
       {
@@ -750,7 +750,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "signature-milk-shakes",
         price: 199,
         isVeg: true,
-        image: "/images/items/blueberry-milkshake.webp",
+        image: "/images/items/strawberry-bliss-shake.webp",
         badge: "Berry Rich",
         description: "Wild mountain blueberries blended into a gorgeous purple thick shake."
       },
@@ -777,7 +777,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "lemonades",
         price: 99,
         isVeg: true,
-        image: "/images/items/classic-citrus-lemonade.webp",
+        image: "/images/items/strawberry-pop-lemonade.webp",
         badge: "Classic",
         description: "Zesty freshly squeezed lemons with pure cane sweetness and chilled sparkling water."
       },
@@ -787,7 +787,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "lemonades",
         price: 139,
         isVeg: true,
-        image: "/images/items/lemon-with-mint-zest-lemonade.webp",
+        image: "/images/items/strawberry-pop-lemonade.webp",
         badge: "Cooler",
         description: "Crushed spearmint sprigs and citrus lemon juice for crisp, cooling rejuvenation."
       },
@@ -797,7 +797,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "lemonades",
         price: 179,
         isVeg: true,
-        image: "/images/items/mango-splash-lemonade.webp",
+        image: "/images/items/strawberry-pop-lemonade.webp",
         description: "Sweet tropical mango nectar with tangy lemon fizz and crushed ice."
       },
       {
@@ -806,7 +806,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "lemonades",
         price: 179,
         isVeg: true,
-        image: "/images/items/blueberry-burst-lemonade.webp",
+        image: "/images/items/strawberry-pop-lemonade.webp",
         badge: "Bursting",
         description: "Plump wild blueberries muddled with fresh lemon juice and effervescent bubbles."
       },
@@ -841,7 +841,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "refreshers",
         price: 149,
         isVeg: true,
-        image: "/images/items/blue-angel.webp",
+        image: "/images/items/pink-diamond.webp",
         badge: "Electric",
         description: "Electric blue curacao citrus refresher with sparkling fizz and fresh mint leaves."
       },
@@ -851,7 +851,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "refreshers",
         price: 149,
         isVeg: true,
-        image: "/images/items/cherry-fizz.webp",
+        image: "/images/items/pink-diamond.webp",
         description: "Ruby sweet wild cherries topped with sparkling soda, lime and crushed ice."
       },
       {
@@ -860,7 +860,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "refreshers",
         price: 149,
         isVeg: true,
-        image: "/images/items/midnight-cola.webp",
+        image: "/images/items/pink-diamond.webp",
         badge: "Craft Cooler",
         description: "Botanical spiced craft dark cola infused with citrus lime wheels and ice."
       },
@@ -887,7 +887,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "mojitos",
         price: 169,
         isVeg: true,
-        image: "/images/items/classic-mint-mojito.webp",
+        image: "/images/items/watermelon-breeze-mojito.webp",
         badge: "Classic",
         description: "Fresh mint leaves gently muddled with lime wedges, cane sugar and sparkling soda."
       },
@@ -897,7 +897,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "mojitos",
         price: 199,
         isVeg: true,
-        image: "/images/items/blue-lagoon-mojito.webp",
+        image: "/images/items/watermelon-breeze-mojito.webp",
         badge: "Trending",
         description: "Vibrant oceanic blue citrus mojito with tangy lime, mint sprigs and fizz."
       },
@@ -916,7 +916,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "mojitos",
         price: 199,
         isVeg: true,
-        image: "/images/items/mango-sunset-mojito.webp",
+        image: "/images/items/watermelon-breeze-mojito.webp",
         description: "Golden mango purée muddled with tart lime, mint and effervescent soda."
       },
       {
@@ -934,7 +934,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "mojitos",
         price: 199,
         isVeg: true,
-        image: "/images/items/blueberry-mojito.webp",
+        image: "/images/items/strawberry-splash-mojito.webp",
         description: "Freshly muddled wild blueberries, crushed lime, fresh mint and chilled bubbles."
       }
     ]
@@ -950,7 +950,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "beverages",
         price: 20,
         isVeg: true,
-        image: "/images/items/mineral-water.webp",
+        image: "/images/mineral-water.jpg",
         description: "Pure packaged chilled Aquafina drinking water."
       },
       {
@@ -959,7 +959,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "beverages",
         price: 50,
         isVeg: true,
-        image: "/images/items/mineral-water-large.webp",
+        image: "/images/mineral-water-large.jpg",
         description: "Tata Lyfe+ premium alkaline packaged drinking water."
       },
       {
@@ -968,7 +968,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "beverages",
         price: 60,
         isVeg: true,
-        image: "/images/items/chilled-beverages.webp",
+        image: "/images/items/pink-diamond.webp",
         badge: "Chilled Cans",
         description: "Chilled aerated canned beverages (Pepsi, Black Pepsi, 7UP)."
       },
@@ -978,7 +978,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "beverages",
         price: 60,
         isVeg: true,
-        image: "/images/items/energy-drink.webp",
+        image: "/images/items/pink-diamond.webp",
         badge: "Boost",
         description: "Ice cold energizing canned beverage for instant vitality."
       }
@@ -995,7 +995,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "combos",
         price: 159,
         isVeg: true,
-        image: "/images/items/combo-fries-soft-drink.webp",
+        image: "/images/items/nashville-fries.webp",
         badge: "Combo Value",
         description: "Golden crispy fries paired with your choice of chilled soft drink. Available with burger or wrap."
       },
@@ -1005,7 +1005,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "combos",
         price: 199,
         isVeg: true,
-        image: "/images/items/combo-fries-refreshers.webp",
+        image: "/images/items/nashville-fries.webp",
         badge: "Best Pairing",
         description: "Golden crispy fries paired with any artisanal sparkling refresher. Available with burger or wrap."
       },
@@ -1015,7 +1015,7 @@ export const MENU_CATEGORIES: MenuCategory[] = [
         category: "combos",
         price: 209,
         isVeg: true,
-        image: "/images/items/combo-fries-lemonade.webp",
+        image: "/images/items/nashville-fries.webp",
         badge: "Thirst Quencher",
         description: "Golden crispy fries paired with a chilled zesty lemonade. Available with burger or wrap."
       }
